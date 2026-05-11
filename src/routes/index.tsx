@@ -103,6 +103,44 @@ function FeedPage() {
   const [activeChannelIds, setActiveChannelIds] = useState<string[]>([]);
   const [sort, setSort] = useState<"recent" | "for-you">("recent");
   const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load saved feed state from localStorage (client-only to avoid SSR mismatch)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("myfeed:state:v1");
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          channels?: MockChannel[];
+          activeChannelIds?: string[];
+          votes?: Record<string, "up" | "down" | undefined>;
+        };
+        if (parsed.channels?.length) setChannels(parsed.channels);
+        if (parsed.activeChannelIds?.length)
+          setActiveChannelIds(parsed.activeChannelIds);
+        if (parsed.votes) setVotes(parsed.votes);
+      }
+    } catch (e) {
+      console.warn("Failed to restore feed state", e);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist whenever the user's curated state changes
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(
+        "myfeed:state:v1",
+        JSON.stringify({ channels, activeChannelIds, votes }),
+      );
+    } catch (e) {
+      console.warn("Failed to persist feed state", e);
+    }
+  }, [hydrated, channels, activeChannelIds, votes]);
+
+  // Re-fetch uploads for any saved channels after hydration so the feed fills in
+  const fetchedRestoredRef = useRef(false);
   const [showFilters, setShowFilters] = useState(true);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [loadingChannelId, setLoadingChannelId] = useState<string | null>(null);
@@ -112,6 +150,60 @@ function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchUploads = useServerFn(getChannelUploads);
+
+  // After hydration, fetch uploads for any restored channels (once)
+  useEffect(() => {
+    if (!hydrated || fetchedRestoredRef.current) return;
+    if (channels.length === 0) return;
+    fetchedRestoredRef.current = true;
+    (async () => {
+      const results = await Promise.all(
+        channels.map(async (c) => {
+          try {
+            const page = await fetchUploads({ data: { channelId: c.id, max: 15 } });
+            return { id: c.id, page, name: c.name };
+          } catch (e) {
+            console.error("Failed to restore channel uploads", c.id, e);
+            return null;
+          }
+        }),
+      );
+      setVideos((prev) => {
+        const existing = new Set(prev.map((v) => v.id));
+        const additions: MockVideo[] = [];
+        for (const r of results) {
+          if (!r) continue;
+          for (const v of r.page.videos) {
+            if (existing.has(v.id)) continue;
+            existing.add(v.id);
+            additions.push({
+              id: v.id,
+              channelId: v.channelId,
+              title: v.title,
+              thumbnailUrl: v.thumbnailUrl,
+              durationSec: v.durationSec,
+              uploadedAt: v.uploadedAt,
+              views: v.views,
+              score: 0.7,
+              reason: `Recent upload from ${r.name}`,
+            });
+          }
+        }
+        return [...prev, ...additions];
+      });
+      setChannelPaging((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          if (!r) continue;
+          next[r.id] = {
+            uploadsPlaylistId: r.page.uploadsPlaylistId,
+            nextPageToken: r.page.nextPageToken,
+          };
+        }
+        return next;
+      });
+    })();
+  }, [hydrated, channels, fetchUploads]);
 
   const loadSampleData = () => {
     setChannels(mockChannels);
@@ -646,7 +738,15 @@ function VideoCard({
       <a
         href={`https://www.youtube.com/watch?v=${video.id}`}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
+        onClick={(e) => {
+          e.preventDefault();
+          window.open(
+            `https://www.youtube.com/watch?v=${video.id}`,
+            "_blank",
+            "noopener,noreferrer",
+          );
+        }}
         className="block"
       >
         <div
@@ -711,14 +811,19 @@ function VideoCard({
               <ThumbsDown className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <Button asChild variant="ghost" size="sm" className="h-8">
-            <a
-              href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Watch
-            </a>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            onClick={() =>
+              window.open(
+                `https://www.youtube.com/watch?v=${video.id}`,
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            Watch
           </Button>
         </div>
       </div>
