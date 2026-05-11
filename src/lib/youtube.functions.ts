@@ -109,28 +109,52 @@ export const searchYouTubeVideos = createServerFn({ method: "GET" })
     return enrichVideos(ids);
   });
 
-// Get channel's latest uploads
+export type ChannelUploadsPage = {
+  videos: YTVideo[];
+  uploadsPlaylistId: string;
+  nextPageToken: string | null;
+};
+
+// Get a page of a channel's uploads. Pass uploadsPlaylistId on subsequent
+// calls to skip the channel lookup, and pageToken to paginate.
 export const getChannelUploads = createServerFn({ method: "GET" })
-  .inputValidator((d: { channelId: string; max?: number }) => d)
-  .handler(async ({ data }): Promise<YTVideo[]> => {
-    const ch = await yt<any>("channels", {
-      part: "contentDetails",
-      id: data.channelId,
-    });
-    const uploadsPid =
-      ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-    if (!uploadsPid) return [];
-    const items = await yt<any>("playlistItems", {
+  .inputValidator(
+    (d: {
+      channelId: string;
+      max?: number;
+      pageToken?: string;
+      uploadsPlaylistId?: string;
+    }) => d,
+  )
+  .handler(async ({ data }): Promise<ChannelUploadsPage> => {
+    let uploadsPid = data.uploadsPlaylistId;
+    if (!uploadsPid) {
+      const ch = await yt<any>("channels", {
+        part: "contentDetails",
+        id: data.channelId,
+      });
+      uploadsPid = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    }
+    if (!uploadsPid) {
+      return { videos: [], uploadsPlaylistId: "", nextPageToken: null };
+    }
+    const params: Record<string, string> = {
       part: "contentDetails",
       playlistId: uploadsPid,
       maxResults: String(Math.min(data.max ?? 15, 50)),
-    });
+    };
+    if (data.pageToken) params.pageToken = data.pageToken;
+    const items = await yt<any>("playlistItems", params);
     const ids = (items.items ?? [])
       .map((i: any) => i.contentDetails?.videoId)
       .filter(Boolean)
       .join(",");
-    if (!ids) return [];
-    return enrichVideos(ids);
+    const videos = ids ? await enrichVideos(ids) : [];
+    return {
+      videos,
+      uploadsPlaylistId: uploadsPid,
+      nextPageToken: items.nextPageToken ?? null,
+    };
   });
 
 async function enrichVideos(ids: string): Promise<YTVideo[]> {

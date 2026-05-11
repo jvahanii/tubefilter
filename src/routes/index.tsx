@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Search,
@@ -106,6 +106,10 @@ function FeedPage() {
   const [showFilters, setShowFilters] = useState(true);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [loadingChannelId, setLoadingChannelId] = useState<string | null>(null);
+  const [channelPaging, setChannelPaging] = useState<
+    Record<string, { uploadsPlaylistId: string; nextPageToken: string | null }>
+  >({});
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchUploads = useServerFn(getChannelUploads);
 
@@ -144,8 +148,8 @@ function FeedPage() {
       setChannels((prev) => [...prev, newChannel]);
       setActiveChannelIds((prev) => [...prev, ch.id]);
 
-      const uploads = await fetchUploads({ data: { channelId: ch.id, max: 15 } });
-      const newVideos: MockVideo[] = uploads.map((v: YTVideo) => ({
+      const page = await fetchUploads({ data: { channelId: ch.id, max: 15 } });
+      const newVideos: MockVideo[] = page.videos.map((v: YTVideo) => ({
         id: v.id,
         channelId: v.channelId,
         title: v.title,
@@ -160,12 +164,103 @@ function FeedPage() {
         const existing = new Set(prev.map((v) => v.id));
         return [...prev, ...newVideos.filter((v) => !existing.has(v.id))];
       });
+      setChannelPaging((prev) => ({
+        ...prev,
+        [ch.id]: {
+          uploadsPlaylistId: page.uploadsPlaylistId,
+          nextPageToken: page.nextPageToken,
+        },
+      }));
     } catch (e) {
       console.error("Failed to load channel uploads", e);
     } finally {
       setLoadingChannelId(null);
     }
   };
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore) return;
+    const targets = activeChannelIds
+      .map((id) => ({ id, paging: channelPaging[id] }))
+      .filter((t) => t.paging?.nextPageToken);
+    if (targets.length === 0) return;
+    setLoadingMore(true);
+    try {
+      const results = await Promise.all(
+        targets.map(async (t) => {
+          try {
+            const page = await fetchUploads({
+              data: {
+                channelId: t.id,
+                max: 15,
+                pageToken: t.paging!.nextPageToken!,
+                uploadsPlaylistId: t.paging!.uploadsPlaylistId,
+              },
+            });
+            return { id: t.id, page };
+          } catch (e) {
+            console.error("Failed to paginate channel", t.id, e);
+            return null;
+          }
+        }),
+      );
+      const channelNameById = new Map(channels.map((c) => [c.id, c.name]));
+      setVideos((prev) => {
+        const existing = new Set(prev.map((v) => v.id));
+        const additions: MockVideo[] = [];
+        for (const r of results) {
+          if (!r) continue;
+          for (const v of r.page.videos) {
+            if (existing.has(v.id)) continue;
+            existing.add(v.id);
+            additions.push({
+              id: v.id,
+              channelId: v.channelId,
+              title: v.title,
+              thumbnailUrl: v.thumbnailUrl,
+              durationSec: v.durationSec,
+              uploadedAt: v.uploadedAt,
+              views: v.views,
+              score: 0.6,
+              reason: `Upload from ${channelNameById.get(v.channelId) ?? v.channelName}`,
+            });
+          }
+        }
+        return [...prev, ...additions];
+      });
+      setChannelPaging((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          if (!r) continue;
+          next[r.id] = {
+            uploadsPlaylistId: r.page.uploadsPlaylistId,
+            nextPageToken: r.page.nextPageToken,
+          };
+        }
+        return next;
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeChannelIds, channelPaging, channels, fetchUploads, loadingMore]);
+
+  const hasMore = activeChannelIds.some(
+    (id) => channelPaging[id]?.nextPageToken,
+  );
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMore();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, loadMore]);
 
   const visibleVideos = useMemo(() => {
     const inc = includeKeywords
@@ -413,6 +508,23 @@ function FeedPage() {
               </div>
             )}
           </div>
+
+          {/* Infinite scroll sentinel */}
+          {(hasMore || loadingMore) && (
+            <div
+              ref={sentinelRef}
+              className="mt-8 flex items-center justify-center py-6 text-xs text-muted-foreground"
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading more videos…
+                </span>
+              ) : (
+                <span>Scroll for more</span>
+              )}
+            </div>
+          )}
         </main>
 
         {/* Filter rail */}
@@ -679,7 +791,11 @@ function DiscoverDialog({
           searchChannels({ data: { query: q } }),
           searchVideos({ data: { query: q } }),
         ]);
-        setChannels(ch);
+        setChannels(
+          [...ch].sort(
+            (a, b) => (b.subscribers ?? 0) - (a.subscribers ?? 0),
+          ),
+        );
         setVideos(vd);
       } catch (e: any) {
         setError(e?.message ?? "Search failed");
