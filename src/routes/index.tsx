@@ -7,7 +7,7 @@ import {
   Filter,
   ThumbsUp,
   ThumbsDown,
-  Clock,
+  
   Eye,
   Sparkles,
   X,
@@ -93,7 +93,7 @@ type LengthFilter = "any" | "short" | "medium" | "long";
 
 function FeedPage() {
   const [search, setSearch] = useState("");
-  const [maxAgeDays, setMaxAgeDays] = useState<number>(7);
+  
   const [lengthFilter, setLengthFilter] = useState<LengthFilter>("any");
   const [excludeKeywords, setExcludeKeywords] = useState("");
   const [includeKeywords, setIncludeKeywords] = useState("");
@@ -275,8 +275,6 @@ function FeedPage() {
     let list = videos.filter((v) => {
       if (!activeChannelIds.includes(v.channelId)) return false;
       if (votes[v.id] === "down") return false;
-      const ageH = (Date.now() - new Date(v.uploadedAt).getTime()) / 3600_000;
-      if (ageH > maxAgeDays * 24) return false;
       if (hideShorts && v.durationSec < 90) return false;
       if (lengthFilter === "short" && v.durationSec >= 240) return false;
       if (lengthFilter === "medium" && (v.durationSec < 240 || v.durationSec > 1200)) return false;
@@ -304,7 +302,7 @@ function FeedPage() {
     videos,
     activeChannelIds,
     votes,
-    maxAgeDays,
+    
     hideShorts,
     lengthFilter,
     search,
@@ -439,10 +437,6 @@ function FeedPage() {
         <main className="min-w-0 flex-1">
           {/* Filter chips summary */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              <Clock className="h-3 w-3" />
-              Last {maxAgeDays}d
-            </Badge>
             {lengthFilter !== "any" && (
               <Badge variant="outline" className="gap-1">
                 Length: {lengthFilter}
@@ -536,23 +530,6 @@ function FeedPage() {
                 <h3 className="text-sm font-semibold">Filters</h3>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Max age</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {maxAgeDays} day{maxAgeDays > 1 ? "s" : ""}
-                  </span>
-                </div>
-                <Slider
-                  value={[maxAgeDays]}
-                  min={1}
-                  max={30}
-                  step={1}
-                  onValueChange={([v]) => setMaxAgeDays(v)}
-                />
-              </div>
-
-              <Separator />
 
               <div className="space-y-2">
                 <Label className="text-xs">Video length</Label>
