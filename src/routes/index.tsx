@@ -275,8 +275,6 @@ function FeedPage() {
     let list = videos.filter((v) => {
       if (!activeChannelIds.includes(v.channelId)) return false;
       if (votes[v.id] === "down") return false;
-      const ageH = (Date.now() - new Date(v.uploadedAt).getTime()) / 3600_000;
-      if (ageH > maxAgeDays * 24) return false;
       if (hideShorts && v.durationSec < 90) return false;
       if (lengthFilter === "short" && v.durationSec >= 240) return false;
       if (lengthFilter === "medium" && (v.durationSec < 240 || v.durationSec > 1200)) return false;
