@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Search,
   Plus,
@@ -16,6 +17,7 @@ import {
   Compass,
   Check,
   Users,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,15 +45,21 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   mockChannels,
   mockVideos,
-  discoverChannels,
-  discoverVideos,
   type MockChannel,
   type MockVideo,
 } from "@/lib/mock-data";
+import {
+  searchYouTubeChannels,
+  searchYouTubeVideos,
+  getChannelUploads,
+  type YTChannel,
+  type YTVideo,
+} from "@/lib/youtube.functions";
 
 export const Route = createFileRoute("/")({
   component: FeedPage,
 });
+
 
 function formatDuration(s: number) {
   const h = Math.floor(s / 3600);
