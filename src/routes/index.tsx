@@ -93,7 +93,7 @@ type LengthFilter = "any" | "short" | "medium" | "long";
 
 function FeedPage() {
   const [search, setSearch] = useState("");
-  const [maxAgeDays, setMaxAgeDays] = useState<number>(7);
+  
   const [lengthFilter, setLengthFilter] = useState<LengthFilter>("any");
   const [excludeKeywords, setExcludeKeywords] = useState("");
   const [includeKeywords, setIncludeKeywords] = useState("");
