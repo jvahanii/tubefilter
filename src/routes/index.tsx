@@ -738,7 +738,15 @@ function VideoCard({
       <a
         href={`https://www.youtube.com/watch?v=${video.id}`}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
+        onClick={(e) => {
+          e.preventDefault();
+          window.open(
+            `https://www.youtube.com/watch?v=${video.id}`,
+            "_blank",
+            "noopener,noreferrer",
+          );
+        }}
         className="block"
       >
         <div
