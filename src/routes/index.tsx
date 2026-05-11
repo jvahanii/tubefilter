@@ -98,39 +98,73 @@ function FeedPage() {
   const [excludeKeywords, setExcludeKeywords] = useState("");
   const [includeKeywords, setIncludeKeywords] = useState("");
   const [hideShorts, setHideShorts] = useState(true);
-  const [channels, setChannels] = useState<MockChannel[]>(mockChannels);
-  const [videos, setVideos] = useState<MockVideo[]>(mockVideos);
-  const [activeChannelIds, setActiveChannelIds] = useState<string[]>(
-    mockChannels.map((c) => c.id),
-  );
+  const [channels, setChannels] = useState<MockChannel[]>([]);
+  const [videos, setVideos] = useState<MockVideo[]>([]);
+  const [activeChannelIds, setActiveChannelIds] = useState<string[]>([]);
   const [sort, setSort] = useState<"recent" | "for-you">("recent");
   const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
   const [showFilters, setShowFilters] = useState(true);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [loadingChannelId, setLoadingChannelId] = useState<string | null>(null);
+
+  const fetchUploads = useServerFn(getChannelUploads);
+
+  const loadSampleData = () => {
+    setChannels(mockChannels);
+    setVideos(mockVideos);
+    setActiveChannelIds(mockChannels.map((c) => c.id));
+  };
 
   const toggleChannel = (id: string) =>
     setActiveChannelIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const addChannelFromDiscover = (ch: MockChannel) => {
+  const removeChannel = (id: string) => {
+    setChannels((prev) => prev.filter((c) => c.id !== id));
+    setActiveChannelIds((prev) => prev.filter((x) => x !== id));
+    setVideos((prev) => prev.filter((v) => v.channelId !== id));
+  };
+
+  const addRealChannel = async (ch: YTChannel) => {
     if (channels.some((c) => c.id === ch.id)) {
-      // already added — just ensure it's active
-      setActiveChannelIds((prev) =>
-        prev.includes(ch.id) ? prev : [...prev, ch.id],
-      );
+      setActiveChannelIds((prev) => (prev.includes(ch.id) ? prev : [...prev, ch.id]));
       return;
     }
-    setChannels((prev) => [...prev, ch]);
-    setActiveChannelIds((prev) => [...prev, ch.id]);
-    // pull in any discover videos belonging to this channel
-    const incoming = discoverVideos
-      .filter((v) => v.channelId === ch.id)
-      .map(({ channelName: _n, channelAvatar: _a, channelColor: _c, ...rest }) => rest);
-    setVideos((prev) => {
-      const existingIds = new Set(prev.map((v) => v.id));
-      return [...prev, ...incoming.filter((v) => !existingIds.has(v.id))];
-    });
+    setLoadingChannelId(ch.id);
+    try {
+      const newChannel: MockChannel = {
+        id: ch.id,
+        name: ch.name,
+        handle: ch.handle ? (ch.handle.startsWith("@") ? ch.handle : `@${ch.handle}`) : "",
+        avatarUrl: ch.avatarUrl,
+        subscribers: ch.subscribers,
+        topics: ch.topics,
+      };
+      setChannels((prev) => [...prev, newChannel]);
+      setActiveChannelIds((prev) => [...prev, ch.id]);
+
+      const uploads = await fetchUploads({ data: { channelId: ch.id, max: 15 } });
+      const newVideos: MockVideo[] = uploads.map((v: YTVideo) => ({
+        id: v.id,
+        channelId: v.channelId,
+        title: v.title,
+        thumbnailUrl: v.thumbnailUrl,
+        durationSec: v.durationSec,
+        uploadedAt: v.uploadedAt,
+        views: v.views,
+        score: 0.7,
+        reason: `Recent upload from ${v.channelName}`,
+      }));
+      setVideos((prev) => {
+        const existing = new Set(prev.map((v) => v.id));
+        return [...prev, ...newVideos.filter((v) => !existing.has(v.id))];
+      });
+    } catch (e) {
+      console.error("Failed to load channel uploads", e);
+    } finally {
+      setLoadingChannelId(null);
+    }
   };
 
   const visibleVideos = useMemo(() => {
