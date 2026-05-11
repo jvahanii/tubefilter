@@ -487,6 +487,31 @@ function FeedPage() {
   );
 }
 
+function ChannelAvatar({
+  channel,
+  className = "h-9 w-9 text-sm",
+}: {
+  channel: { name: string; avatar?: string; color?: string; avatarUrl?: string };
+  className?: string;
+}) {
+  if (channel.avatarUrl) {
+    return (
+      <img
+        src={channel.avatarUrl}
+        alt={channel.name}
+        className={`shrink-0 rounded-full object-cover ${className}`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${channel.color ?? "from-zinc-600 to-zinc-800"} ${className}`}
+    >
+      <span>{channel.avatar ?? channel.name.slice(0, 1)}</span>
+    </div>
+  );
+}
+
 function VideoCard({
   video,
   channels,
@@ -502,25 +527,36 @@ function VideoCard({
   if (!channel) return null;
   return (
     <article className="group overflow-hidden rounded-xl border bg-card transition hover:border-foreground/20 hover:shadow-lg">
-      <div
-        className={`relative aspect-video w-full bg-gradient-to-br ${video.thumbnailGradient}`}
+      <a
+        href={`https://www.youtube.com/watch?v=${video.id}`}
+        target="_blank"
+        rel="noreferrer"
+        className="block"
       >
-        <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
-          {formatDuration(video.durationSec)}
-        </span>
-        <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur">
-          <Sparkles className="h-3 w-3" />
-          {Math.round(video.score * 100)}% match
-        </span>
-      </div>
+        <div
+          className={`relative aspect-video w-full overflow-hidden ${video.thumbnailUrl ? "bg-muted" : `bg-gradient-to-br ${video.thumbnailGradient ?? "from-zinc-700 to-zinc-900"}`}`}
+        >
+          {video.thumbnailUrl && (
+            <img
+              src={video.thumbnailUrl}
+              alt={video.title}
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          )}
+          <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
+            {formatDuration(video.durationSec)}
+          </span>
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur">
+            <Sparkles className="h-3 w-3" />
+            {Math.round(video.score * 100)}% match
+          </span>
+        </div>
+      </a>
 
       <div className="space-y-3 p-4">
         <div className="flex items-start gap-3">
-          <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm ${channel.color}`}
-          >
-            {channel.avatar}
-          </div>
+          <ChannelAvatar channel={channel} />
           <div className="min-w-0 flex-1">
             <h3 className="line-clamp-2 text-sm font-semibold leading-snug">
               {video.title}
@@ -559,8 +595,14 @@ function VideoCard({
               <ThumbsDown className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="h-8">
-            Watch
+          <Button asChild variant="ghost" size="sm" className="h-8">
+            <a
+              href={`https://www.youtube.com/watch?v=${video.id}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Watch
+            </a>
           </Button>
         </div>
       </div>
@@ -572,35 +614,54 @@ function DiscoverDialog({
   open,
   onOpenChange,
   addedChannelIds,
+  loadingChannelId,
   onAdd,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   addedChannelIds: string[];
-  onAdd: (ch: MockChannel) => void;
+  loadingChannelId: string | null;
+  onAdd: (ch: YTChannel) => void | Promise<void>;
 }) {
   const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState("");
+  const [channels, setChannels] = useState<YTChannel[]>([]);
+  const [videos, setVideos] = useState<YTVideo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredChannels = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return discoverChannels;
-    return discoverChannels.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.handle.toLowerCase().includes(q) ||
-        c.topics?.some((t) => t.includes(q)),
-    );
-  }, [query]);
+  const searchChannels = useServerFn(searchYouTubeChannels);
+  const searchVideos = useServerFn(searchYouTubeVideos);
 
-  const filteredVideos = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return discoverVideos;
-    return discoverVideos.filter(
-      (v) =>
-        v.title.toLowerCase().includes(q) ||
-        v.channelName.toLowerCase().includes(q),
-    );
-  }, [query]);
+  // Debounced live search
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setChannels([]);
+      setVideos([]);
+      setSubmitted("");
+      setError(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      setSubmitted(q);
+      try {
+        const [ch, vd] = await Promise.all([
+          searchChannels({ data: { query: q } }),
+          searchVideos({ data: { query: q } }),
+        ]);
+        setChannels(ch);
+        setVideos(vd);
+      } catch (e: any) {
+        setError(e?.message ?? "Search failed");
+      } finally {
+        setLoading(false);
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [query, searchChannels, searchVideos]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -611,8 +672,8 @@ function DiscoverDialog({
             Discover on YouTube
           </DialogTitle>
           <DialogDescription>
-            Search across YouTube for channels and videos, then add a channel to your
-            feed in one click.
+            Search the live YouTube catalog. Add a channel and its latest uploads
+            land in your feed instantly.
           </DialogDescription>
         </DialogHeader>
 
@@ -622,49 +683,57 @@ function DiscoverDialog({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search channels, topics or videos…"
+            placeholder="Search YouTube channels and videos…"
             className="pl-9"
           />
+          {loading && (
+            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+          )}
         </div>
+
+        {error && (
+          <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
+            {error}
+          </div>
+        )}
 
         <Tabs defaultValue="channels" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="channels" className="gap-1.5">
               <Users className="h-4 w-4" />
-              Channels ({filteredChannels.length})
+              Channels ({channels.length})
             </TabsTrigger>
             <TabsTrigger value="videos" className="gap-1.5">
               <Youtube className="h-4 w-4" />
-              Videos ({filteredVideos.length})
+              Videos ({videos.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="channels" className="mt-4">
             <ScrollArea className="h-[420px] pr-3">
               <ul className="space-y-2">
-                {filteredChannels.map((c) => {
+                {channels.map((c) => {
                   const added = addedChannelIds.includes(c.id);
+                  const busy = loadingChannelId === c.id;
                   return (
                     <li
                       key={c.id}
                       className="flex items-center gap-3 rounded-lg border bg-card p-3"
                     >
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-lg ${c.color}`}
-                      >
-                        {c.avatar}
-                      </div>
+                      <ChannelAvatar channel={c} className="h-11 w-11 text-lg" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-semibold">{c.name}</div>
-                          <span className="truncate text-xs text-muted-foreground">
-                            {c.handle}
-                          </span>
+                          {c.handle && (
+                            <span className="truncate text-xs text-muted-foreground">
+                              {c.handle.startsWith("@") ? c.handle : `@${c.handle}`}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 text-xs text-muted-foreground">
                           {formatSubs(c.subscribers)}
                         </div>
-                        {c.topics && (
+                        {c.topics && c.topics.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1">
                             {c.topics.map((t) => (
                               <Badge key={t} variant="secondary" className="text-[10px]">
@@ -678,13 +747,18 @@ function DiscoverDialog({
                         size="sm"
                         variant={added ? "secondary" : "default"}
                         className="gap-1.5"
-                        disabled={added}
+                        disabled={added || busy}
                         onClick={() => onAdd(c)}
                       >
                         {added ? (
                           <>
                             <Check className="h-3.5 w-3.5" />
                             Added
+                          </>
+                        ) : busy ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Adding…
                           </>
                         ) : (
                           <>
@@ -696,9 +770,14 @@ function DiscoverDialog({
                     </li>
                   );
                 })}
-                {filteredChannels.length === 0 && (
+                {!loading && submitted && channels.length === 0 && (
                   <li className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    No channels match "{query}".
+                    No channels match "{submitted}".
+                  </li>
+                )}
+                {!submitted && (
+                  <li className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    Type a name, topic or keyword to search YouTube.
                   </li>
                 )}
               </ul>
@@ -708,31 +787,33 @@ function DiscoverDialog({
           <TabsContent value="videos" className="mt-4">
             <ScrollArea className="h-[420px] pr-3">
               <ul className="space-y-2">
-                {filteredVideos.map((v) => {
-                  const channel = discoverChannels.find((c) => c.id === v.channelId);
+                {videos.map((v) => {
                   const added = addedChannelIds.includes(v.channelId);
+                  const busy = loadingChannelId === v.channelId;
                   return (
-                    <li
-                      key={v.id}
-                      className="flex gap-3 rounded-lg border bg-card p-3"
-                    >
-                      <div
-                        className={`relative aspect-video h-20 shrink-0 overflow-hidden rounded-md bg-gradient-to-br ${v.thumbnailGradient}`}
+                    <li key={v.id} className="flex gap-3 rounded-lg border bg-card p-3">
+                      <a
+                        href={`https://www.youtube.com/watch?v=${v.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="relative aspect-video h-20 shrink-0 overflow-hidden rounded-md bg-muted"
                       >
+                        {v.thumbnailUrl && (
+                          <img
+                            src={v.thumbnailUrl}
+                            alt={v.title}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
                         <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 py-0.5 text-[10px] font-medium text-white">
                           {formatDuration(v.durationSec)}
                         </span>
-                      </div>
+                      </a>
                       <div className="min-w-0 flex-1">
                         <h4 className="line-clamp-2 text-sm font-semibold leading-snug">
                           {v.title}
                         </h4>
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span
-                            className={`flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br text-[9px] ${v.channelColor}`}
-                          >
-                            {v.channelAvatar}
-                          </span>
                           <span className="truncate">{v.channelName}</span>
                           <span>·</span>
                           <span>{formatRelative(v.uploadedAt)}</span>
@@ -744,13 +825,25 @@ function DiscoverDialog({
                         size="sm"
                         variant={added ? "secondary" : "outline"}
                         className="shrink-0 gap-1.5 self-center"
-                        disabled={added || !channel}
-                        onClick={() => channel && onAdd(channel)}
+                        disabled={added || busy}
+                        onClick={() =>
+                          onAdd({
+                            id: v.channelId,
+                            name: v.channelName,
+                            handle: "",
+                            avatarUrl: v.channelAvatarUrl ?? "",
+                          })
+                        }
                       >
                         {added ? (
                           <>
                             <Check className="h-3.5 w-3.5" />
                             Added
+                          </>
+                        ) : busy ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Adding…
                           </>
                         ) : (
                           <>
@@ -762,9 +855,14 @@ function DiscoverDialog({
                     </li>
                   );
                 })}
-                {filteredVideos.length === 0 && (
+                {!loading && submitted && videos.length === 0 && (
                   <li className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    No videos match "{query}".
+                    No videos match "{submitted}".
+                  </li>
+                )}
+                {!submitted && (
+                  <li className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    Type a query to find videos on YouTube.
                   </li>
                 )}
               </ul>
@@ -774,4 +872,5 @@ function DiscoverDialog({
       </DialogContent>
     </Dialog>
   );
+}
 }
