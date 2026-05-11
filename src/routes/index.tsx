@@ -106,6 +106,10 @@ function FeedPage() {
   const [showFilters, setShowFilters] = useState(true);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [loadingChannelId, setLoadingChannelId] = useState<string | null>(null);
+  const [channelPaging, setChannelPaging] = useState<
+    Record<string, { uploadsPlaylistId: string; nextPageToken: string | null }>
+  >({});
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchUploads = useServerFn(getChannelUploads);
 
