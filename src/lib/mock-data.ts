@@ -2,8 +2,9 @@ export type MockChannel = {
   id: string;
   name: string;
   handle: string;
-  avatar: string; // emoji as placeholder
-  color: string;
+  avatar?: string; // emoji placeholder (mock)
+  color?: string; // gradient (mock)
+  avatarUrl?: string; // real channel thumbnail
   subscribers?: number;
   topics?: string[];
 };
@@ -12,7 +13,8 @@ export type MockVideo = {
   id: string;
   channelId: string;
   title: string;
-  thumbnailGradient: string;
+  thumbnailGradient?: string; // mock
+  thumbnailUrl?: string; // real
   durationSec: number;
   uploadedAt: string; // ISO
   views: number;
