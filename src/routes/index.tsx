@@ -60,22 +60,6 @@ export const Route = createFileRoute("/")({
   component: FeedPage,
 });
 
-function openYouTube(videoId: string) {
-  const url = `https://www.youtube.com/watch?v=${videoId}`;
-  // Try a real new tab first
-  const win = window.open(url, "_blank", "noopener,noreferrer");
-  if (win) return;
-  // Fallback: break out of the sandboxed preview iframe by navigating the top frame
-  try {
-    if (window.top && window.top !== window.self) {
-      window.top.location.href = url;
-      return;
-    }
-  } catch {
-    // cross-origin top, fall through
-  }
-  window.location.href = url;
-}
 
 function formatDuration(s: number) {
   const h = Math.floor(s / 3600);
@@ -757,7 +741,11 @@ function VideoCard({
         rel="noopener noreferrer"
         onClick={(e) => {
           e.preventDefault();
-          openYouTube(video.id);
+          window.open(
+            `https://www.youtube.com/watch?v=${video.id}`,
+            "_blank",
+            "noopener,noreferrer",
+          );
         }}
         className="block"
       >
@@ -827,7 +815,13 @@ function VideoCard({
             variant="ghost"
             size="sm"
             className="h-8"
-            onClick={() => openYouTube(video.id)}
+            onClick={() =>
+              window.open(
+                `https://www.youtube.com/watch?v=${video.id}`,
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
           >
             Watch
           </Button>
@@ -1027,10 +1021,6 @@ function DiscoverDialog({
                         href={`https://www.youtube.com/watch?v=${v.id}`}
                         target="_blank"
                         rel="noreferrer"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          openYouTube(v.id);
-                        }}
                         className="relative aspect-video h-20 shrink-0 overflow-hidden rounded-md bg-muted"
                       >
                         {v.thumbnailUrl && (
