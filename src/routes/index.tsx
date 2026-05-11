@@ -60,6 +60,22 @@ export const Route = createFileRoute("/")({
   component: FeedPage,
 });
 
+function openYouTube(videoId: string) {
+  const url = `https://www.youtube.com/watch?v=${videoId}`;
+  // Try a real new tab first
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  if (win) return;
+  // Fallback: break out of the sandboxed preview iframe by navigating the top frame
+  try {
+    if (window.top && window.top !== window.self) {
+      window.top.location.href = url;
+      return;
+    }
+  } catch {
+    // cross-origin top, fall through
+  }
+  window.location.href = url;
+}
 
 function formatDuration(s: number) {
   const h = Math.floor(s / 3600);
