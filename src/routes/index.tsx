@@ -791,7 +791,11 @@ function DiscoverDialog({
           searchChannels({ data: { query: q } }),
           searchVideos({ data: { query: q } }),
         ]);
-        setChannels(ch);
+        setChannels(
+          [...ch].sort(
+            (a, b) => (b.subscribers ?? 0) - (a.subscribers ?? 0),
+          ),
+        );
         setVideos(vd);
       } catch (e: any) {
         setError(e?.message ?? "Search failed");
