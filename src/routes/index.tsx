@@ -811,14 +811,19 @@ function VideoCard({
               <ThumbsDown className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <Button asChild variant="ghost" size="sm" className="h-8">
-            <a
-              href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Watch
-            </a>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            onClick={() =>
+              window.open(
+                `https://www.youtube.com/watch?v=${video.id}`,
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            Watch
           </Button>
         </div>
       </div>
