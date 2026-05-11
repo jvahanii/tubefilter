@@ -305,29 +305,36 @@ function FeedPage() {
                         new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
                     )[0];
                   return (
-                    <li key={c.id}>
+                    <li key={c.id} className="group flex items-center gap-1">
                       <button
                         onClick={() => toggleChannel(c.id)}
-                        className={`group flex w-full items-center gap-3 rounded-md p-2 text-left transition ${
+                        className={`flex flex-1 items-center gap-3 rounded-md p-2 text-left transition ${
                           active ? "bg-accent" : "hover:bg-accent/50 opacity-60"
                         }`}
                       >
-                        <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-base ${c.color}`}
-                        >
-                          <span>{c.avatar}</span>
-                        </div>
+                        <ChannelAvatar channel={c} />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium">{c.name}</div>
                           <div className="truncate text-xs text-muted-foreground">
                             {lastVid ? `Last: ${formatRelative(lastVid.uploadedAt)}` : c.handle}
                           </div>
                         </div>
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
+                      </button>
+                      <button
+                        onClick={() => removeChannel(c.id)}
+                        className="rounded p-1.5 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                        aria-label={`Remove ${c.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </li>
                   );
                 })}
+                {channels.length === 0 && (
+                  <li className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+                    No channels yet. Use Discover to add some.
+                  </li>
+                )}
               </ul>
             </ScrollArea>
           </div>
