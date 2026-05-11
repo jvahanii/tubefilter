@@ -439,10 +439,6 @@ function FeedPage() {
         <main className="min-w-0 flex-1">
           {/* Filter chips summary */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              <Clock className="h-3 w-3" />
-              Last {maxAgeDays}d
-            </Badge>
             {lengthFilter !== "any" && (
               <Badge variant="outline" className="gap-1">
                 Length: {lengthFilter}
