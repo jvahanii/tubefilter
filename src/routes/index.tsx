@@ -302,7 +302,7 @@ function FeedPage() {
     videos,
     activeChannelIds,
     votes,
-    maxAgeDays,
+    
     hideShorts,
     lengthFilter,
     search,
