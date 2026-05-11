@@ -804,18 +804,18 @@ function VideoCard({
             </Button>
           </div>
           <Button
+            asChild
             variant="ghost"
             size="sm"
             className="h-8"
-            onClick={() =>
-              window.open(
-                `https://www.youtube.com/watch?v=${video.id}`,
-                "_blank",
-                "noopener,noreferrer",
-              )
-            }
           >
-            Watch
+            <a
+              href={`https://www.youtube.com/watch?v=${video.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Watch
+            </a>
           </Button>
         </div>
       </div>
