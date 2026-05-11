@@ -737,7 +737,7 @@ function VideoCard({
     <article className="group overflow-hidden rounded-xl border bg-card transition hover:border-foreground/20 hover:shadow-lg">
       <a
         href={`https://www.youtube.com/watch?v=${video.id}`}
-        target="_blank"
+        target="_blank" data-yt-link
         rel="noopener noreferrer"
         className="block"
       >
@@ -811,7 +811,7 @@ function VideoCard({
           >
             <a
               href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
+              target="_blank" data-yt-link
               rel="noopener noreferrer"
             >
               Watch
@@ -1011,7 +1011,7 @@ function DiscoverDialog({
                     <li key={v.id} className="flex gap-3 rounded-lg border bg-card p-3">
                       <a
                         href={`https://www.youtube.com/watch?v=${v.id}`}
-                        target="_blank"
+                        target="_blank" data-yt-link
                         rel="noreferrer"
                         className="relative aspect-video h-20 shrink-0 overflow-hidden rounded-md bg-muted"
                       >
