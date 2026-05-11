@@ -103,6 +103,44 @@ function FeedPage() {
   const [activeChannelIds, setActiveChannelIds] = useState<string[]>([]);
   const [sort, setSort] = useState<"recent" | "for-you">("recent");
   const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load saved feed state from localStorage (client-only to avoid SSR mismatch)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("myfeed:state:v1");
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          channels?: MockChannel[];
+          activeChannelIds?: string[];
+          votes?: Record<string, "up" | "down" | undefined>;
+        };
+        if (parsed.channels?.length) setChannels(parsed.channels);
+        if (parsed.activeChannelIds?.length)
+          setActiveChannelIds(parsed.activeChannelIds);
+        if (parsed.votes) setVotes(parsed.votes);
+      }
+    } catch (e) {
+      console.warn("Failed to restore feed state", e);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist whenever the user's curated state changes
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(
+        "myfeed:state:v1",
+        JSON.stringify({ channels, activeChannelIds, votes }),
+      );
+    } catch (e) {
+      console.warn("Failed to persist feed state", e);
+    }
+  }, [hydrated, channels, activeChannelIds, votes]);
+
+  // Re-fetch uploads for any saved channels after hydration so the feed fills in
+  const fetchedRestoredRef = useRef(false);
   const [showFilters, setShowFilters] = useState(true);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [loadingChannelId, setLoadingChannelId] = useState<string | null>(null);
