@@ -508,6 +508,23 @@ function FeedPage() {
               </div>
             )}
           </div>
+
+          {/* Infinite scroll sentinel */}
+          {(hasMore || loadingMore) && (
+            <div
+              ref={sentinelRef}
+              className="mt-8 flex items-center justify-center py-6 text-xs text-muted-foreground"
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading more videos…
+                </span>
+              ) : (
+                <span>Scroll for more</span>
+              )}
+            </div>
+          )}
         </main>
 
         {/* Filter rail */}
