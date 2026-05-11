@@ -536,23 +536,6 @@ function FeedPage() {
                 <h3 className="text-sm font-semibold">Filters</h3>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Max age</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {maxAgeDays} day{maxAgeDays > 1 ? "s" : ""}
-                  </span>
-                </div>
-                <Slider
-                  value={[maxAgeDays]}
-                  min={1}
-                  max={30}
-                  step={1}
-                  onValueChange={([v]) => setMaxAgeDays(v)}
-                />
-              </div>
-
-              <Separator />
 
               <div className="space-y-2">
                 <Label className="text-xs">Video length</Label>
