@@ -61,7 +61,7 @@ export const Route = createFileRoute("/")({
 });
 
 function openYouTube(videoId: string) {
-  const url = `https://www.youtube.com/embed/${videoId}`;
+  const url = `https://www.youtube.com/watch?v=${videoId}`;
   // Try a real new tab first
   const win = window.open(url, "_blank", "noopener,noreferrer");
   if (win) return;
@@ -752,7 +752,7 @@ function VideoCard({
   return (
     <article className="group overflow-hidden rounded-xl border bg-card transition hover:border-foreground/20 hover:shadow-lg">
       <a
-        href={`https://www.youtube.com/embed/${video.id}`}
+        href={`https://www.youtube.com/watch?v=${video.id}`}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => {
@@ -1024,7 +1024,7 @@ function DiscoverDialog({
                   return (
                     <li key={v.id} className="flex gap-3 rounded-lg border bg-card p-3">
                       <a
-                        href={`https://www.youtube.com/embed/${v.id}`}
+                        href={`https://www.youtube.com/watch?v=${v.id}`}
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => {
