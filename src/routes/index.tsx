@@ -873,4 +873,3 @@ function DiscoverDialog({
     </Dialog>
   );
 }
-}
