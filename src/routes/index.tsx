@@ -385,11 +385,31 @@ function FeedPage() {
             ))}
             {visibleVideos.length === 0 && (
               <div className="col-span-full rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-                <p className="mb-3">No videos match your filters.</p>
-                <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)}>
-                  <Compass className="mr-1.5 h-4 w-4" />
-                  Find new channels
-                </Button>
+                {channels.length === 0 ? (
+                  <>
+                    <p className="mb-1 text-base text-foreground">Your feed is empty.</p>
+                    <p className="mb-4 text-sm">
+                      Add channels from YouTube to start building your personalised feed.
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      <Button onClick={() => setDiscoverOpen(true)}>
+                        <Compass className="mr-1.5 h-4 w-4" />
+                        Discover channels
+                      </Button>
+                      <Button variant="outline" onClick={loadSampleData}>
+                        Load sample data
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-3">No videos match your filters.</p>
+                    <Button variant="outline" size="sm" onClick={() => setDiscoverOpen(true)}>
+                      <Compass className="mr-1.5 h-4 w-4" />
+                      Find new channels
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
