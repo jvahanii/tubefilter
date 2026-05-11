@@ -1027,6 +1027,10 @@ function DiscoverDialog({
                         href={`https://www.youtube.com/watch?v=${v.id}`}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openYouTube(v.id);
+                        }}
                         className="relative aspect-video h-20 shrink-0 overflow-hidden rounded-md bg-muted"
                       >
                         {v.thumbnailUrl && (
