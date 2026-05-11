@@ -151,6 +151,60 @@ function FeedPage() {
 
   const fetchUploads = useServerFn(getChannelUploads);
 
+  // After hydration, fetch uploads for any restored channels (once)
+  useEffect(() => {
+    if (!hydrated || fetchedRestoredRef.current) return;
+    if (channels.length === 0) return;
+    fetchedRestoredRef.current = true;
+    (async () => {
+      const results = await Promise.all(
+        channels.map(async (c) => {
+          try {
+            const page = await fetchUploads({ data: { channelId: c.id, max: 15 } });
+            return { id: c.id, page, name: c.name };
+          } catch (e) {
+            console.error("Failed to restore channel uploads", c.id, e);
+            return null;
+          }
+        }),
+      );
+      setVideos((prev) => {
+        const existing = new Set(prev.map((v) => v.id));
+        const additions: MockVideo[] = [];
+        for (const r of results) {
+          if (!r) continue;
+          for (const v of r.page.videos) {
+            if (existing.has(v.id)) continue;
+            existing.add(v.id);
+            additions.push({
+              id: v.id,
+              channelId: v.channelId,
+              title: v.title,
+              thumbnailUrl: v.thumbnailUrl,
+              durationSec: v.durationSec,
+              uploadedAt: v.uploadedAt,
+              views: v.views,
+              score: 0.7,
+              reason: `Recent upload from ${r.name}`,
+            });
+          }
+        }
+        return [...prev, ...additions];
+      });
+      setChannelPaging((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          if (!r) continue;
+          next[r.id] = {
+            uploadsPlaylistId: r.page.uploadsPlaylistId,
+            nextPageToken: r.page.nextPageToken,
+          };
+        }
+        return next;
+      });
+    })();
+  }, [hydrated, channels, fetchUploads]);
+
   const loadSampleData = () => {
     setChannels(mockChannels);
     setVideos(mockVideos);
