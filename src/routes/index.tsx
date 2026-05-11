@@ -55,6 +55,8 @@ import {
   type YTChannel,
   type YTVideo,
 } from "@/lib/youtube.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/")({
   component: FeedPage,
@@ -105,12 +107,26 @@ function FeedPage() {
   const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
   const [hydrated, setHydrated] = useState(false);
 
-  // Load saved feed state from localStorage (client-only to avoid SSR mismatch)
+  const { user } = useAuth();
+
+  // Load saved feed state from Supabase for the signed-in user
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("myfeed:state:v1");
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
+    if (!user) {
+      setHydrated(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("data")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.warn("Failed to load preferences", error.message);
+      } else if (data?.data) {
+        const parsed = data.data as {
           channels?: MockChannel[];
           activeChannelIds?: string[];
           votes?: Record<string, "up" | "down" | undefined>;
@@ -120,24 +136,29 @@ function FeedPage() {
           setActiveChannelIds(parsed.activeChannelIds);
         if (parsed.votes) setVotes(parsed.votes);
       }
-    } catch (e) {
-      console.warn("Failed to restore feed state", e);
-    }
-    setHydrated(true);
-  }, []);
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
-  // Persist whenever the user's curated state changes
+  // Persist whenever the user's curated state changes (debounced)
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(
-        "myfeed:state:v1",
-        JSON.stringify({ channels, activeChannelIds, votes }),
+    if (!hydrated || !user) return;
+    const handle = setTimeout(async () => {
+      const { error } = await supabase.from("user_preferences").upsert(
+        {
+          user_id: user.id,
+          data: { channels, activeChannelIds, votes },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
       );
-    } catch (e) {
-      console.warn("Failed to persist feed state", e);
-    }
-  }, [hydrated, channels, activeChannelIds, votes]);
+      if (error) console.warn("Failed to persist preferences", error.message);
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [hydrated, user, channels, activeChannelIds, votes]);
 
   // Re-fetch uploads for any saved channels after hydration so the feed fills in
   const fetchedRestoredRef = useRef(false);
