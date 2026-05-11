@@ -480,7 +480,8 @@ function FeedPage() {
         open={discoverOpen}
         onOpenChange={setDiscoverOpen}
         addedChannelIds={channels.map((c) => c.id)}
-        onAdd={addChannelFromDiscover}
+        loadingChannelId={loadingChannelId}
+        onAdd={addRealChannel}
       />
     </div>
   );
