@@ -732,14 +732,14 @@ function VideoCard({
   onVote: (dir: "up" | "down") => void;
 }) {
   const channel = channels.find((c) => c.id === video.channelId);
+  const [playing, setPlaying] = useState(false);
   if (!channel) return null;
   return (
     <article className="group overflow-hidden rounded-xl border bg-card transition hover:border-foreground/20 hover:shadow-lg">
-      <a
-        href={`https://www.youtube.com/watch?v=${video.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
+      <button
+        type="button"
+        onClick={() => setPlaying(true)}
+        className="block w-full text-left"
       >
         <div
           className={`relative aspect-video w-full overflow-hidden ${video.thumbnailUrl ? "bg-muted" : `bg-gradient-to-br ${video.thumbnailGradient ?? "from-zinc-700 to-zinc-900"}`}`}
@@ -760,7 +760,7 @@ function VideoCard({
             {Math.round(video.score * 100)}% match
           </span>
         </div>
-      </a>
+      </button>
 
       <div className="space-y-3 p-4">
         <div className="flex items-start gap-3">
@@ -804,21 +804,53 @@ function VideoCard({
             </Button>
           </div>
           <Button
-            asChild
             variant="ghost"
             size="sm"
             className="h-8"
+            onClick={() => setPlaying(true)}
           >
-            <a
-              href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Watch
-            </a>
+            Watch
           </Button>
         </div>
       </div>
+
+      <Dialog open={playing} onOpenChange={setPlaying}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{video.title}</DialogTitle>
+            <DialogDescription>{channel.name}</DialogDescription>
+          </DialogHeader>
+          <div className="relative aspect-video w-full">
+            {playing && (
+              <iframe
+                src={`https://www.youtube.com/embed/${video.id}?autoplay=1&rel=0`}
+                title={video.title}
+                className="absolute inset-0 h-full w-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-3 bg-card p-3 text-sm">
+            <div className="min-w-0">
+              <div className="truncate font-medium">{video.title}</div>
+              <div className="truncate text-xs text-muted-foreground">
+                {channel.name} · {formatViews(video.views)} · {formatRelative(video.uploadedAt)}
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`https://www.youtube.com/watch?v=${video.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open on YouTube
+              </a>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }
