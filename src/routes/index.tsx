@@ -824,18 +824,12 @@ function VideoCard({
             </Button>
           </div>
           <Button
-            asChild
             variant="ghost"
             size="sm"
             className="h-8"
+            onClick={() => openYouTube(video.id)}
           >
-            <a
-              href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Watch
-            </a>
+            Watch
           </Button>
         </div>
       </div>
