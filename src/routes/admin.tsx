@@ -12,6 +12,7 @@ import {
   Users as UsersIcon,
   Shield,
   ShieldOff,
+  Crown,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -40,11 +41,17 @@ type SearchRow = {
   created_at: string;
 };
 type RoleRow = { user_id: string; role: "admin" | "user" };
+type UpgradeAttemptRow = {
+  user_id: string;
+  channel_name: string | null;
+  created_at: string;
+};
 
 type UserRow = Profile & {
   prefs: PrefRow["data"];
   searches: SearchRow[];
   roles: Array<"admin" | "user">;
+  upgradeAttempts: UpgradeAttemptRow[];
 };
 
 function fmt(d: string | null | undefined) {
@@ -84,27 +91,35 @@ function AdminPage() {
 
   async function loadAll() {
     setLoading(true);
-    const [profilesRes, prefsRes, searchesRes, rolesRes] = await Promise.all([
-      supabase.from("profiles").select("id,email,created_at,last_sign_in_at"),
-      supabase.from("user_preferences").select("user_id,data"),
-      supabase
-        .from("search_events")
-        .select("id,user_id,query,kind,created_at")
-        .order("created_at", { ascending: false })
-        .limit(2000),
-      supabase.from("user_roles").select("user_id,role"),
-    ]);
+    const [profilesRes, prefsRes, searchesRes, rolesRes, upgradesRes] =
+      await Promise.all([
+        supabase.from("profiles").select("id,email,created_at,last_sign_in_at"),
+        supabase.from("user_preferences").select("user_id,data"),
+        supabase
+          .from("search_events")
+          .select("id,user_id,query,kind,created_at")
+          .order("created_at", { ascending: false })
+          .limit(2000),
+        supabase.from("user_roles").select("user_id,role"),
+        supabase
+          .from("upgrade_attempts")
+          .select("user_id,channel_name,created_at")
+          .order("created_at", { ascending: false })
+          .limit(2000),
+      ]);
     if (
       profilesRes.error ||
       prefsRes.error ||
       searchesRes.error ||
-      rolesRes.error
+      rolesRes.error ||
+      upgradesRes.error
     ) {
       setError(
         profilesRes.error?.message ||
           prefsRes.error?.message ||
           searchesRes.error?.message ||
           rolesRes.error?.message ||
+          upgradesRes.error?.message ||
           "Failed to load",
       );
       setLoading(false);
@@ -124,12 +139,19 @@ function AdminPage() {
       arr.push(r.role);
       roleMap.set(r.user_id, arr);
     });
+    const upgradeMap = new Map<string, UpgradeAttemptRow[]>();
+    (upgradesRes.data as UpgradeAttemptRow[]).forEach((u) => {
+      const arr = upgradeMap.get(u.user_id) ?? [];
+      arr.push(u);
+      upgradeMap.set(u.user_id, arr);
+    });
     const merged: UserRow[] = (profilesRes.data as Profile[])
       .map((p) => ({
         ...p,
         prefs: prefMap.get(p.id) ?? null,
         searches: searchMap.get(p.id) ?? [],
         roles: roleMap.get(p.id) ?? [],
+        upgradeAttempts: upgradeMap.get(p.id) ?? [],
       }))
       .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
     setRows(merged);
@@ -262,6 +284,7 @@ function AdminPage() {
                   const active = r.id === selectedId;
                   const channelCount = r.prefs?.channels?.length ?? 0;
                   const isUserAdmin = r.roles.includes("admin");
+                  const upgradeCount = r.upgradeAttempts.length;
                   return (
                     <li key={r.id}>
                       <button
@@ -274,6 +297,19 @@ function AdminPage() {
                           <div className="flex-1 truncate text-sm font-medium">
                             {r.email ?? r.id.slice(0, 8)}
                           </div>
+                          {upgradeCount > 0 && !isUserAdmin && (
+                            <Badge
+                              className="gap-1 border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-300"
+                              variant="outline"
+                              title={`Hit free-tier limit ${upgradeCount} time${upgradeCount === 1 ? "" : "s"}`}
+                            >
+                              <Crown className="h-3 w-3" />
+                              Wants Pro
+                              <span className="ml-0.5 opacity-70">
+                                ×{upgradeCount}
+                              </span>
+                            </Badge>
+                          )}
                           {isUserAdmin && (
                             <Badge className="text-[10px]" variant="default">
                               <Shield className="mr-1 h-3 w-3" />
