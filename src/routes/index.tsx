@@ -452,12 +452,20 @@ function FeedPage() {
             <span className="hidden sm:inline">Discover</span>
           </Button>
           <Button
-            variant={showFilters ? "default" : "outline"}
-            size="icon"
-            onClick={() => setShowFilters((v) => !v)}
-            aria-label="Toggle filters"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setHiddenOpen(true)}
+            aria-label="Show hidden videos"
+            title="Hidden videos"
           >
-            <SlidersHorizontal className="h-4 w-4" />
+            <EyeOff className="h-4 w-4" />
+            <span className="hidden sm:inline">Hidden</span>
+            {hiddenIds.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {hiddenIds.length}
+              </Badge>
+            )}
           </Button>
           <Button
             variant="ghost"
