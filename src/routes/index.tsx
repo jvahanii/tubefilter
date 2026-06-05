@@ -1072,8 +1072,8 @@ function DiscoverDialog({
                       </div>
                       <Button
                         size="sm"
-                        variant={added ? "secondary" : "default"}
-                        className="gap-1.5"
+                        variant={added ? "secondary" : "outline"}
+                        className="shrink-0 gap-1.5 self-center"
                         disabled={added || busy}
                         onClick={() => onAdd(c)}
                       >
@@ -1090,7 +1090,7 @@ function DiscoverDialog({
                         ) : (
                           <>
                             <Plus className="h-3.5 w-3.5" />
-                            Add to feed
+                            Add channel
                           </>
                         )}
                       </Button>
