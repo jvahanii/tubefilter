@@ -1028,11 +1028,11 @@ function DiscoverDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="channels" className="gap-1.5">
               <Users className="h-4 w-4" />
-              Channels ({channels.length})
+              Search for channels ({channels.length})
             </TabsTrigger>
             <TabsTrigger value="videos" className="gap-1.5">
               <Youtube className="h-4 w-4" />
-              Videos ({videos.length})
+              Search for channels based on videos ({videos.length})
             </TabsTrigger>
           </TabsList>
 
