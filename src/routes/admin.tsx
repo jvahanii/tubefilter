@@ -12,6 +12,7 @@ import {
   Users as UsersIcon,
   Shield,
   ShieldOff,
+  Crown,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
