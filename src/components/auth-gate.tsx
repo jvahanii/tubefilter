@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Youtube } from "lucide-react";
+import { Eye, EyeOff, Loader2, Youtube } from "lucide-react";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -27,14 +27,28 @@ function AuthScreen() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function handleModeChange(v: string) {
+    setMode(v as "signin" | "signup");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setError(null);
+    setInfo(null);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setInfo(null);
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
     setBusy(true);
     const fn = mode === "signin" ? signIn : signUp;
     const { error } = await fn(email, password);
@@ -51,7 +65,7 @@ function AuthScreen() {
           <Youtube className="h-6 w-6 text-primary" />
           <h1 className="text-lg font-semibold">YourTube Feed</h1>
         </div>
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")}>
+        <Tabs value={mode} onValueChange={handleModeChange}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign in</TabsTrigger>
             <TabsTrigger value="signup">Sign up</TabsTrigger>
@@ -70,15 +84,50 @@ function AuthScreen() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
+              {mode === "signup" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      minLength={6}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
               {error && <p className="text-sm text-destructive">{error}</p>}
               {info && <p className="text-sm text-muted-foreground">{info}</p>}
               <Button type="submit" className="w-full" disabled={busy}>

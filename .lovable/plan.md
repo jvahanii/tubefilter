@@ -1,20 +1,25 @@
-## Remove "More like this" button and all thumbs-up logic
+## Signup: show-password toggle + confirm password
 
-Edit `src/routes/index.tsx`:
+Edit `src/components/auth-gate.tsx` only.
 
-1. **VideoCard** — remove the "More like this" `<Button>` (lines 819-827). Drop `vote` and `onVote` props, remove `ThumbsUp` icon usage. Hide button calls a simpler `onHide` callback instead.
-2. **Imports** — remove `ThumbsUp` and `ThumbsDown` from lucide-react imports.
-3. **Feed page** — replace the `votes` state with a simpler `hiddenIds: string[]` (or `Set<string>`). Update:
-   - `useState` declaration
-   - Supabase hydration (`parsed.votes` → `parsed.hiddenIds`)
-   - Supabase persistence payload (`votes` → `hiddenIds`)
-   - `visibleVideos` filter: `if (hiddenIds.includes(v.id)) return false;`
-   - Remove the `votes[id] === "up"` boost branch in the `for-you` sort
-4. **Sort dropdown** — remove the "For you" `<SelectItem>` and narrow the `sort` state type to just `"recent"` (or drop the Select entirely since only one option remains). I'll drop the Select to keep the header clean.
-5. **Filter rail** — remove the "Learning from you / Thumbs up boosts…" info block (lines 706-712) since there's no learning anymore.
-6. **VideoCard call site** — pass `onHide={() => setHiddenIds(prev => [...prev, v.id])}` and `hidden={hiddenIds.includes(v.id)}` (so the Hide button can still toggle visually if needed; actually since hidden videos disappear from the list, the toggle state isn't visible — Hide just removes).
+### Changes
 
-### Migration note
-Existing rows in `user_preferences.data.votes` will simply be ignored. Down-votes won't auto-migrate to `hiddenIds`. If you want me to migrate existing `votes[id] === "down"` entries into `hiddenIds` on hydration, say so and I'll add a one-time conversion.
+1. **Show/hide password toggle**
+   - Add `showPassword` state (boolean).
+   - Wrap the password `Input` in a relative container with an `Eye` / `EyeOff` icon button (lucide-react) positioned on the right.
+   - Toggle the input `type` between `"password"` and `"text"`.
+   - Apply to both signin and signup (single shared field), and to the new confirm field.
 
-No DB schema changes needed — `data` is JSON.
+2. **Confirm password (signup only)**
+   - Add `confirmPassword` state.
+   - Render a second `Input` labeled "Confirm password" only when `mode === "signup"`.
+   - Include the same show/hide toggle.
+
+3. **Validation on submit (signup only)**
+   - If `password !== confirmPassword`, set `error` to "Passwords do not match" and abort before calling `signUp`.
+   - Keep existing `minLength={6}` on both fields.
+
+4. **State reset**
+   - Clear `confirmPassword` and `showPassword` when switching tabs via `setMode` to avoid stale values leaking between flows.
+
+No backend/auth logic changes — `signUp(email, password)` signature stays the same.
