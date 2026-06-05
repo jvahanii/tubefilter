@@ -1,6 +1,5 @@
-import { useState, type ReactNode, type FormEvent } from "react";
-import { useEffect } from "react";
-import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode, type FormEvent } from "react";
+import { useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +10,16 @@ import { Eye, EyeOff, Loader2, Youtube, ArrowLeft } from "lucide-react";
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+  const [recoveryHash, setRecoveryHash] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setRecoveryHash(window.location.hash);
+    }
+  }, [location.pathname, location.search]);
 
   const recoveryParams = new URLSearchParams(
-    `${location.search.startsWith("?") ? location.search.slice(1) : location.search}&${window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash}`,
+    `${location.search.startsWith("?") ? location.search.slice(1) : location.search}&${recoveryHash.startsWith("#") ? recoveryHash.slice(1) : recoveryHash}`,
   );
   const isRecoveryRequest =
     recoveryParams.get("type") === "recovery" ||
@@ -25,14 +30,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user && location.pathname !== "/reset-password" && isRecoveryRequest) {
-      void navigate({
-        to: "/reset-password",
-        replace: true,
-        search: location.search,
-        hash: window.location.hash,
-      });
+      window.location.replace(`/reset-password${location.search}${recoveryHash}`);
     }
-  }, [isRecoveryRequest, loading, location.pathname, location.search, navigate, user]);
+  }, [isRecoveryRequest, loading, location.pathname, location.search, recoveryHash, user]);
 
   if (loading) {
     return (
