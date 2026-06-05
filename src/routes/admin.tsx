@@ -91,27 +91,35 @@ function AdminPage() {
 
   async function loadAll() {
     setLoading(true);
-    const [profilesRes, prefsRes, searchesRes, rolesRes] = await Promise.all([
-      supabase.from("profiles").select("id,email,created_at,last_sign_in_at"),
-      supabase.from("user_preferences").select("user_id,data"),
-      supabase
-        .from("search_events")
-        .select("id,user_id,query,kind,created_at")
-        .order("created_at", { ascending: false })
-        .limit(2000),
-      supabase.from("user_roles").select("user_id,role"),
-    ]);
+    const [profilesRes, prefsRes, searchesRes, rolesRes, upgradesRes] =
+      await Promise.all([
+        supabase.from("profiles").select("id,email,created_at,last_sign_in_at"),
+        supabase.from("user_preferences").select("user_id,data"),
+        supabase
+          .from("search_events")
+          .select("id,user_id,query,kind,created_at")
+          .order("created_at", { ascending: false })
+          .limit(2000),
+        supabase.from("user_roles").select("user_id,role"),
+        supabase
+          .from("upgrade_attempts")
+          .select("user_id,channel_name,created_at")
+          .order("created_at", { ascending: false })
+          .limit(2000),
+      ]);
     if (
       profilesRes.error ||
       prefsRes.error ||
       searchesRes.error ||
-      rolesRes.error
+      rolesRes.error ||
+      upgradesRes.error
     ) {
       setError(
         profilesRes.error?.message ||
           prefsRes.error?.message ||
           searchesRes.error?.message ||
           rolesRes.error?.message ||
+          upgradesRes.error?.message ||
           "Failed to load",
       );
       setLoading(false);
@@ -131,12 +139,19 @@ function AdminPage() {
       arr.push(r.role);
       roleMap.set(r.user_id, arr);
     });
+    const upgradeMap = new Map<string, UpgradeAttemptRow[]>();
+    (upgradesRes.data as UpgradeAttemptRow[]).forEach((u) => {
+      const arr = upgradeMap.get(u.user_id) ?? [];
+      arr.push(u);
+      upgradeMap.set(u.user_id, arr);
+    });
     const merged: UserRow[] = (profilesRes.data as Profile[])
       .map((p) => ({
         ...p,
         prefs: prefMap.get(p.id) ?? null,
         searches: searchMap.get(p.id) ?? [],
         roles: roleMap.get(p.id) ?? [],
+        upgradeAttempts: upgradeMap.get(p.id) ?? [],
       }))
       .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
     setRows(merged);
