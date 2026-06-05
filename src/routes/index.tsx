@@ -860,6 +860,65 @@ function FeedPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+              <Crown className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-xl">
+              Upgrade to Pro
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              The Free plan is limited to {FREE_CHANNEL_LIMIT} channel. Upgrade
+              to Pro for an unlimited personalised feed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border bg-accent/30 p-4">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-3xl font-bold">$9</span>
+              <span className="text-sm text-muted-foreground">/month</span>
+            </div>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                Unlimited channels
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                Advanced filters & discovery
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                Priority support
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Button
+              className="w-full gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
+              onClick={() => {
+                alert(
+                  "Pro checkout is coming soon. Thanks for your interest!",
+                );
+              }}
+            >
+              <Crown className="h-4 w-4" />
+              Upgrade now
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setUpgradeOpen(false)}
+            >
+              Maybe later
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
