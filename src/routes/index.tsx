@@ -229,7 +229,7 @@ function FeedPage() {
   const loadSampleData = () => {
     setChannels(mockChannels);
     setVideos(mockVideos);
-    setActiveChannelIds(mockChannels.map((c) => c.id));
+    setActiveChannelIds([]);
   };
 
   const toggleChannel = (id: string) =>
@@ -237,17 +237,20 @@ function FeedPage() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
+  const clearChannelSelection = () => setActiveChannelIds([]);
+
   const removeChannel = (id: string) => {
     setChannels((prev) => prev.filter((c) => c.id !== id));
     setActiveChannelIds((prev) => prev.filter((x) => x !== id));
     setVideos((prev) => prev.filter((v) => v.channelId !== id));
   };
 
+
   const addRealChannel = async (ch: YTChannel) => {
     if (channels.some((c) => c.id === ch.id)) {
-      setActiveChannelIds((prev) => (prev.includes(ch.id) ? prev : [...prev, ch.id]));
       return;
     }
+
     setLoadingChannelId(ch.id);
     try {
       const newChannel: MockChannel = {
@@ -259,7 +262,7 @@ function FeedPage() {
         topics: ch.topics,
       };
       setChannels((prev) => [...prev, newChannel]);
-      setActiveChannelIds((prev) => [...prev, ch.id]);
+
 
       const page = await fetchUploads({ data: { channelId: ch.id, max: 15 } });
       const newVideos: MockVideo[] = page.videos.map((v: YTVideo) => ({
@@ -293,10 +296,13 @@ function FeedPage() {
 
   const loadMore = useCallback(async () => {
     if (loadingMore) return;
-    const targets = activeChannelIds
+    const effectiveIds =
+      activeChannelIds.length > 0 ? activeChannelIds : channels.map((c) => c.id);
+    const targets = effectiveIds
       .map((id) => ({ id, paging: channelPaging[id] }))
       .filter((t) => t.paging?.nextPageToken);
     if (targets.length === 0) return;
+
     setLoadingMore(true);
     try {
       const results = await Promise.all(
@@ -355,11 +361,12 @@ function FeedPage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [activeChannelIds, channelPaging, channels, fetchUploads, loadingMore]);
+  }, [activeChannelIds, channels, channelPaging, fetchUploads, loadingMore]);
 
-  const hasMore = activeChannelIds.some(
+  const hasMore = (activeChannelIds.length > 0 ? activeChannelIds : channels.map((c) => c.id)).some(
     (id) => channelPaging[id]?.nextPageToken,
   );
+
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -386,7 +393,7 @@ function FeedPage() {
       .filter(Boolean);
 
     let list = videos.filter((v) => {
-      if (!activeChannelIds.includes(v.channelId)) return false;
+      if (activeChannelIds.length > 0 && !activeChannelIds.includes(v.channelId)) return false;
       if (hiddenIds.includes(v.id)) return false;
       if (hideShorts && v.durationSec < 90) return false;
       if (lengthFilter === "short" && v.durationSec >= 240) return false;
@@ -414,7 +421,7 @@ function FeedPage() {
     excludeKeywords,
   ]);
 
-  const hiddenCount = videos.filter((v) => activeChannelIds.includes(v.channelId)).length - visibleVideos.length;
+  const hiddenCount = videos.filter((v) => activeChannelIds.length === 0 || activeChannelIds.includes(v.channelId)).length - visibleVideos.length;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -498,10 +505,31 @@ function FeedPage() {
               Discover & add channels
             </Button>
 
-            <ScrollArea className="h-[calc(100vh-220px)] pr-2">
+            {activeChannelIds.length > 0 ? (
+              <div className="flex items-center justify-between rounded-md border bg-accent/30 px-2.5 py-1.5 text-xs">
+                <span className="text-muted-foreground">
+                  Filtering by {activeChannelIds.length} channel{activeChannelIds.length === 1 ? "" : "s"}
+                </span>
+                <button
+                  onClick={clearChannelSelection}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  Show all
+                </button>
+              </div>
+            ) : (
+              <p className="px-1 text-xs text-muted-foreground">
+                Click channels to show only their videos.
+              </p>
+            )}
+
+            <ScrollArea className="h-[calc(100vh-260px)] pr-2">
               <ul className="space-y-1">
                 {channels.map((c) => {
-                  const active = activeChannelIds.includes(c.id);
+                  const selecting = activeChannelIds.length > 0;
+                  const selected = activeChannelIds.includes(c.id);
+                  const active = !selecting || selected;
+
                   const lastVid = videos
                     .filter((v) => v.channelId === c.id)
                     .sort(
