@@ -41,11 +41,17 @@ type SearchRow = {
   created_at: string;
 };
 type RoleRow = { user_id: string; role: "admin" | "user" };
+type UpgradeAttemptRow = {
+  user_id: string;
+  channel_name: string | null;
+  created_at: string;
+};
 
 type UserRow = Profile & {
   prefs: PrefRow["data"];
   searches: SearchRow[];
   roles: Array<"admin" | "user">;
+  upgradeAttempts: UpgradeAttemptRow[];
 };
 
 function fmt(d: string | null | undefined) {
