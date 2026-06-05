@@ -535,11 +535,26 @@ function FeedPage() {
             <Button
               variant="outline"
               className="w-full justify-start gap-2"
-              onClick={() => setDiscoverOpen(true)}
+              onClick={() => {
+                if (atChannelLimit) setUpgradeOpen(true);
+                else setDiscoverOpen(true);
+              }}
             >
               <Compass className="h-4 w-4" />
               Discover & add channels
             </Button>
+            {!isAdmin && (
+              <p className="px-1 text-[11px] text-muted-foreground">
+                Free plan: {channels.length}/{FREE_CHANNEL_LIMIT} channel.{" "}
+                <button
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                  onClick={() => setUpgradeOpen(true)}
+                >
+                  Upgrade to Pro
+                </button>{" "}
+                for unlimited.
+              </p>
+            )}
 
             {activeChannelIds.length > 0 ? (
               <div className="flex items-center justify-between rounded-md border bg-accent/30 px-2.5 py-1.5 text-xs">
