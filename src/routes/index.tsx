@@ -150,7 +150,7 @@ function FeedPage() {
       const { error } = await supabase.from("user_preferences").upsert(
         {
           user_id: user.id,
-          data: { channels, activeChannelIds, votes },
+          data: { channels, activeChannelIds, hiddenIds },
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
@@ -158,7 +158,7 @@ function FeedPage() {
       if (error) console.warn("Failed to persist preferences", error.message);
     }, 500);
     return () => clearTimeout(handle);
-  }, [hydrated, user, channels, activeChannelIds, votes]);
+  }, [hydrated, user, channels, activeChannelIds, hiddenIds]);
 
   // Re-fetch uploads for any saved channels after hydration so the feed fills in
   const fetchedRestoredRef = useRef(false);
