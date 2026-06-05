@@ -262,7 +262,7 @@ function FeedPage() {
         topics: ch.topics,
       };
       setChannels((prev) => [...prev, newChannel]);
-      setActiveChannelIds((prev) => [...prev, ch.id]);
+
 
       const page = await fetchUploads({ data: { channelId: ch.id, max: 15 } });
       const newVideos: MockVideo[] = page.videos.map((v: YTVideo) => ({
