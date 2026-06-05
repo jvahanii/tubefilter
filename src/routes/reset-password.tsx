@@ -89,15 +89,22 @@ function ResetPasswordPage() {
         recoveryError = verifyError?.message ?? null;
       }
 
-      if (recoveryError) {
-        markResolved(false, "This password reset link is invalid or has expired.");
-        return;
+      // Even if our manual exchange failed (e.g. detectSessionInUrl already
+      // consumed the code), the session may have been established. Re-check
+      // before declaring the link invalid. Give Supabase a brief moment to
+      // emit PASSWORD_RECOVERY / persist the session.
+      for (let i = 0; i < 10; i++) {
+        const { data: verifiedSession } = await supabase.auth.getSession();
+        if (verifiedSession.session) {
+          markResolved(true);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 100));
       }
 
-      const { data: verifiedSession } = await supabase.auth.getSession();
       markResolved(
-        !!verifiedSession.session,
-        verifiedSession.session ? null : "This password reset link is invalid or has expired.",
+        false,
+        recoveryError ?? "This password reset link is invalid or has expired.",
       );
     })();
 
