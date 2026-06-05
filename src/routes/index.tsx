@@ -708,8 +708,7 @@ function FeedPage() {
                   <Sparkles className="h-3.5 w-3.5" />
                   Learning from you
                 </div>
-                Thumbs up boost similar videos. Thumbs down hides them and trains the
-                ranker.
+                Thumbs up boosts similar videos. Hide removes a video from your feed.
               </div>
             </div>
           </aside>
@@ -832,7 +831,8 @@ function VideoCard({
               className="h-8 gap-1.5"
               onClick={() => onVote("down")}
             >
-              <ThumbsDown className="h-3.5 w-3.5" />
+              <EyeOff className="h-3.5 w-3.5" />
+              Hide
             </Button>
           </div>
           <Button
