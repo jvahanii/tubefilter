@@ -26,12 +26,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     recoveryParams.has("refresh_token") ||
     recoveryParams.has("token_hash") ||
     recoveryParams.has("code");
+  const shouldRedirectToReset = location.pathname !== "/reset-password" && isRecoveryRequest;
 
   useEffect(() => {
-    if (!loading && !user && location.pathname !== "/reset-password" && isRecoveryRequest) {
+    if (!loading && shouldRedirectToReset) {
       window.location.replace(`/reset-password${recoveryUrl.search}${recoveryUrl.hash}`);
     }
-  }, [isRecoveryRequest, loading, location.pathname, recoveryUrl.search, recoveryUrl.hash, user]);
+  }, [loading, recoveryUrl.search, recoveryUrl.hash, shouldRedirectToReset]);
 
   if (loading) {
     return (
@@ -41,7 +42,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user && location.pathname !== "/reset-password" && isRecoveryRequest) {
+  if (shouldRedirectToReset) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
