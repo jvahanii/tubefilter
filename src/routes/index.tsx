@@ -19,6 +19,7 @@ import {
   Loader2,
   LogOut,
   Shield,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -191,6 +192,10 @@ function FeedPage() {
     Record<string, { uploadsPlaylistId: string; nextPageToken: string | null }>
   >({});
   const [loadingMore, setLoadingMore] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const FREE_CHANNEL_LIMIT = 1;
+  const atChannelLimit = !isAdmin && channels.length >= FREE_CHANNEL_LIMIT;
 
   const fetchUploads = useServerFn(getChannelUploads);
 
@@ -269,6 +274,11 @@ function FeedPage() {
 
   const addRealChannel = async (ch: YTChannel) => {
     if (channels.some((c) => c.id === ch.id)) {
+      return;
+    }
+    if (!isAdmin && channels.length >= FREE_CHANNEL_LIMIT) {
+      setUpgradeOpen(true);
+      setDiscoverOpen(false);
       return;
     }
 
@@ -525,11 +535,26 @@ function FeedPage() {
             <Button
               variant="outline"
               className="w-full justify-start gap-2"
-              onClick={() => setDiscoverOpen(true)}
+              onClick={() => {
+                if (atChannelLimit) setUpgradeOpen(true);
+                else setDiscoverOpen(true);
+              }}
             >
               <Compass className="h-4 w-4" />
               Discover & add channels
             </Button>
+            {!isAdmin && (
+              <p className="px-1 text-[11px] text-muted-foreground">
+                Free plan: {channels.length}/{FREE_CHANNEL_LIMIT} channel.{" "}
+                <button
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                  onClick={() => setUpgradeOpen(true)}
+                >
+                  Upgrade to Pro
+                </button>{" "}
+                for unlimited.
+              </p>
+            )}
 
             {activeChannelIds.length > 0 ? (
               <div className="flex items-center justify-between rounded-md border bg-accent/30 px-2.5 py-1.5 text-xs">
@@ -833,6 +858,65 @@ function FeedPage() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+              <Crown className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-xl">
+              Upgrade to Pro
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              The Free plan is limited to {FREE_CHANNEL_LIMIT} channel. Upgrade
+              to Pro for an unlimited personalised feed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border bg-accent/30 p-4">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-3xl font-bold">$9</span>
+              <span className="text-sm text-muted-foreground">/month</span>
+            </div>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                Unlimited channels
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                Advanced filters & discovery
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                Priority support
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Button
+              className="w-full gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
+              onClick={() => {
+                alert(
+                  "Pro checkout is coming soon. Thanks for your interest!",
+                );
+              }}
+            >
+              <Crown className="h-4 w-4" />
+              Upgrade now
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setUpgradeOpen(false)}
+            >
+              Maybe later
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
