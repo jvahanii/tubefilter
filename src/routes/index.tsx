@@ -790,26 +790,15 @@ function VideoCard({
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex gap-1">
-            <Button
-              variant={vote === "up" ? "default" : "outline"}
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => onVote("up")}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" />
-              More like this
-            </Button>
-            <Button
-              variant={vote === "down" ? "destructive" : "outline"}
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => onVote("down")}
-            >
-              <EyeOff className="h-3.5 w-3.5" />
-              Hide
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={onHide}
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            Hide
+          </Button>
           <Button
             variant="ghost"
             size="sm"
