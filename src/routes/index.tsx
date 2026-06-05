@@ -361,11 +361,12 @@ function FeedPage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [activeChannelIds, channelPaging, channels, fetchUploads, loadingMore]);
+  }, [activeChannelIds, channels, channelPaging, fetchUploads, loadingMore]);
 
-  const hasMore = activeChannelIds.some(
+  const hasMore = (activeChannelIds.length > 0 ? activeChannelIds : channels.map((c) => c.id)).some(
     (id) => channelPaging[id]?.nextPageToken,
   );
+
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
