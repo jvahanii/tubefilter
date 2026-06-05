@@ -284,6 +284,7 @@ function AdminPage() {
                   const active = r.id === selectedId;
                   const channelCount = r.prefs?.channels?.length ?? 0;
                   const isUserAdmin = r.roles.includes("admin");
+                  const upgradeCount = r.upgradeAttempts.length;
                   return (
                     <li key={r.id}>
                       <button
@@ -296,6 +297,19 @@ function AdminPage() {
                           <div className="flex-1 truncate text-sm font-medium">
                             {r.email ?? r.id.slice(0, 8)}
                           </div>
+                          {upgradeCount > 0 && !isUserAdmin && (
+                            <Badge
+                              className="gap-1 border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-300"
+                              variant="outline"
+                              title={`Hit free-tier limit ${upgradeCount} time${upgradeCount === 1 ? "" : "s"}`}
+                            >
+                              <Crown className="h-3 w-3" />
+                              Wants Pro
+                              <span className="ml-0.5 opacity-70">
+                                ×{upgradeCount}
+                              </span>
+                            </Badge>
+                          )}
                           {isUserAdmin && (
                             <Badge className="text-[10px]" variant="default">
                               <Shield className="mr-1 h-3 w-3" />
