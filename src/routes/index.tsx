@@ -5,8 +5,6 @@ import {
   Search,
   Plus,
   Filter,
-  ThumbsUp,
-  ThumbsDown,
   
   Eye,
   EyeOff,
@@ -105,8 +103,7 @@ function FeedPage() {
   const [channels, setChannels] = useState<MockChannel[]>([]);
   const [videos, setVideos] = useState<MockVideo[]>([]);
   const [activeChannelIds, setActiveChannelIds] = useState<string[]>([]);
-  const [sort, setSort] = useState<"recent" | "for-you">("recent");
-  const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   const { user, signOut } = useAuth();
@@ -131,12 +128,12 @@ function FeedPage() {
         const parsed = data.data as {
           channels?: MockChannel[];
           activeChannelIds?: string[];
-          votes?: Record<string, "up" | "down" | undefined>;
+          hiddenIds?: string[];
         };
         if (parsed.channels?.length) setChannels(parsed.channels);
         if (parsed.activeChannelIds?.length)
           setActiveChannelIds(parsed.activeChannelIds);
-        if (parsed.votes) setVotes(parsed.votes);
+        if (parsed.hiddenIds?.length) setHiddenIds(parsed.hiddenIds);
       }
       setHydrated(true);
     })();
@@ -152,7 +149,7 @@ function FeedPage() {
       const { error } = await supabase.from("user_preferences").upsert(
         {
           user_id: user.id,
-          data: { channels, activeChannelIds, votes },
+          data: { channels, activeChannelIds, hiddenIds },
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
@@ -160,7 +157,7 @@ function FeedPage() {
       if (error) console.warn("Failed to persist preferences", error.message);
     }, 500);
     return () => clearTimeout(handle);
-  }, [hydrated, user, channels, activeChannelIds, votes]);
+  }, [hydrated, user, channels, activeChannelIds, hiddenIds]);
 
   // Re-fetch uploads for any saved channels after hydration so the feed fills in
   const fetchedRestoredRef = useRef(false);
@@ -389,7 +386,7 @@ function FeedPage() {
 
     let list = videos.filter((v) => {
       if (!activeChannelIds.includes(v.channelId)) return false;
-      if (votes[v.id] === "down") return false;
+      if (hiddenIds.includes(v.id)) return false;
       if (hideShorts && v.durationSec < 90) return false;
       if (lengthFilter === "short" && v.durationSec >= 240) return false;
       if (lengthFilter === "medium" && (v.durationSec < 240 || v.durationSec > 1200)) return false;
@@ -401,29 +398,19 @@ function FeedPage() {
       return true;
     });
 
-    if (sort === "recent") {
-      list = [...list].sort(
-        (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
-      );
-    } else {
-      list = [...list].sort((a, b) => {
-        const ba = (votes[b.id] === "up" ? 0.2 : 0) + b.score;
-        const aa = (votes[a.id] === "up" ? 0.2 : 0) + a.score;
-        return ba - aa;
-      });
-    }
+    list = [...list].sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+    );
     return list;
   }, [
     videos,
     activeChannelIds,
-    votes,
-    
+    hiddenIds,
     hideShorts,
     lengthFilter,
     search,
     includeKeywords,
     excludeKeywords,
-    sort,
   ]);
 
   const hiddenCount = videos.filter((v) => activeChannelIds.includes(v.channelId)).length - visibleVideos.length;
@@ -464,15 +451,6 @@ function FeedPage() {
             <Compass className="h-4 w-4" />
             <span className="hidden sm:inline">Discover</span>
           </Button>
-          <Select value={sort} onValueChange={(v) => setSort(v as "recent" | "for-you")}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Most recent</SelectItem>
-              <SelectItem value="for-you">For you</SelectItem>
-            </SelectContent>
-          </Select>
           <Button
             variant={showFilters ? "default" : "outline"}
             size="icon"
@@ -587,12 +565,10 @@ function FeedPage() {
                 key={v.id}
                 video={v}
                 channels={channels}
-                vote={votes[v.id]}
-                onVote={(dir) =>
-                  setVotes((prev) => ({
-                    ...prev,
-                    [v.id]: prev[v.id] === dir ? undefined : dir,
-                  }))
+                onHide={() =>
+                  setHiddenIds((prev) =>
+                    prev.includes(v.id) ? prev : [...prev, v.id],
+                  )
                 }
               />
             ))}
@@ -706,9 +682,9 @@ function FeedPage() {
               <div className="rounded-md bg-accent/40 p-3 text-xs text-muted-foreground">
                 <div className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Learning from you
+                  Hidden videos
                 </div>
-                Thumbs up boosts similar videos. Hide removes a video from your feed.
+                Hide removes a video from your feed.
               </div>
             </div>
           </aside>
@@ -754,13 +730,11 @@ function ChannelAvatar({
 function VideoCard({
   video,
   channels,
-  vote,
-  onVote,
+  onHide,
 }: {
   video: MockVideo;
   channels: MockChannel[];
-  vote: "up" | "down" | undefined;
-  onVote: (dir: "up" | "down") => void;
+  onHide: () => void;
 }) {
   const channel = channels.find((c) => c.id === video.channelId);
   const [playing, setPlaying] = useState(false);
@@ -815,26 +789,15 @@ function VideoCard({
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex gap-1">
-            <Button
-              variant={vote === "up" ? "default" : "outline"}
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => onVote("up")}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" />
-              More like this
-            </Button>
-            <Button
-              variant={vote === "down" ? "destructive" : "outline"}
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => onVote("down")}
-            >
-              <EyeOff className="h-3.5 w-3.5" />
-              Hide
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={onHide}
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            Hide
+          </Button>
           <Button
             variant="ghost"
             size="sm"
