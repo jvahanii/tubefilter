@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Youtube, LogOut } from "lucide-react";
+import { Loader2, Youtube } from "lucide-react";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
