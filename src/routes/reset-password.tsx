@@ -29,6 +29,7 @@ function ResetPasswordPage() {
 
   useEffect(() => {
     let active = true;
+    let recoveryEventSeen = false;
 
     const markResolved = (allowed: boolean, nextError: string | null = null) => {
       if (!active) return;
@@ -36,13 +37,27 @@ function ResetPasswordPage() {
       setCanReset(allowed);
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    // detectSessionInUrl auto-consumes recovery codes and fires
+    // PASSWORD_RECOVERY. Subscribe first so we don't race the client.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-      if (event === "PASSWORD_RECOVERY") {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        recoveryEventSeen = true;
         setError(null);
         setCanReset(true);
       }
     });
+
+    const waitForSession = async (timeoutMs: number) => {
+      const start = Date.now();
+      while (active && Date.now() - start < timeoutMs) {
+        if (recoveryEventSeen) return true;
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return true;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return false;
+    };
 
     void (async () => {
       const params = getRecoveryParams();
@@ -54,16 +69,19 @@ function ResetPasswordPage() {
         params.has("code");
 
       if (!hasRecoveryParams) {
-        markResolved(false);
+        // No recovery params — only allow if a session already exists.
+        const { data } = await supabase.auth.getSession();
+        markResolved(!!data.session);
         return;
       }
 
-      const { data: currentSession } = await supabase.auth.getSession();
-      if (currentSession.session) {
+      // Step 1: let the Supabase client auto-process the URL first.
+      if (await waitForSession(1500)) {
         markResolved(true);
         return;
       }
 
+      // Step 2: fall back to manual exchange using whatever params we have.
       const code = params.get("code");
       const tokenHash = params.get("token_hash");
       const type = params.get("type");
@@ -73,33 +91,27 @@ function ResetPasswordPage() {
       let recoveryError: string | null = null;
 
       if (accessToken && refreshToken) {
-        const { error: setSessionError } = await supabase.auth.setSession({
+        const { error: e } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-        recoveryError = setSessionError?.message ?? null;
+        recoveryError = e?.message ?? null;
       } else if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        recoveryError = exchangeError?.message ?? null;
+        const { error: e } = await supabase.auth.exchangeCodeForSession(code);
+        recoveryError = e?.message ?? null;
       } else if (type === "recovery" && tokenHash) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
+        const { error: e } = await supabase.auth.verifyOtp({
           type: "recovery",
           token_hash: tokenHash,
         });
-        recoveryError = verifyError?.message ?? null;
+        recoveryError = e?.message ?? null;
       }
 
-      // Even if our manual exchange failed (e.g. detectSessionInUrl already
-      // consumed the code), the session may have been established. Re-check
-      // before declaring the link invalid. Give Supabase a brief moment to
-      // emit PASSWORD_RECOVERY / persist the session.
-      for (let i = 0; i < 10; i++) {
-        const { data: verifiedSession } = await supabase.auth.getSession();
-        if (verifiedSession.session) {
-          markResolved(true);
-          return;
-        }
-        await new Promise((r) => setTimeout(r, 100));
+      // Step 3: re-verify — manual exchange may have failed because the
+      // auto-detect already succeeded. Poll once more before giving up.
+      if (await waitForSession(1500)) {
+        markResolved(true);
+        return;
       }
 
       markResolved(
