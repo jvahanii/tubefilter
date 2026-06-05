@@ -10,17 +10,16 @@ import { Eye, EyeOff, Loader2, Youtube, ArrowLeft } from "lucide-react";
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const [recoveryHash, setRecoveryHash] = useState("");
+  const [recoveryUrl, setRecoveryUrl] = useState({ search: "", hash: "" });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setRecoveryHash(window.location.hash);
+      setRecoveryUrl({ search: window.location.search, hash: window.location.hash });
     }
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
-  const recoveryParams = new URLSearchParams(
-    `${location.search.startsWith("?") ? location.search.slice(1) : location.search}&${recoveryHash.startsWith("#") ? recoveryHash.slice(1) : recoveryHash}`,
-  );
+  const stripped = `${recoveryUrl.search.replace(/^\?/, "")}&${recoveryUrl.hash.replace(/^#/, "")}`;
+  const recoveryParams = new URLSearchParams(stripped);
   const isRecoveryRequest =
     recoveryParams.get("type") === "recovery" ||
     recoveryParams.has("access_token") ||
@@ -30,9 +29,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user && location.pathname !== "/reset-password" && isRecoveryRequest) {
-      window.location.replace(`/reset-password${location.search}${recoveryHash}`);
+      window.location.replace(`/reset-password${recoveryUrl.search}${recoveryUrl.hash}`);
     }
-  }, [isRecoveryRequest, loading, location.pathname, location.search, recoveryHash, user]);
+  }, [isRecoveryRequest, loading, location.pathname, recoveryUrl.search, recoveryUrl.hash, user]);
 
   if (loading) {
     return (
