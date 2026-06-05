@@ -1189,7 +1189,7 @@ function DiscoverDialog({
                 )}
                 {!submitted && (
                   <li className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    Type a query to find videos on YouTube.
+                    ​
                   </li>
                 )}
               </ul>
