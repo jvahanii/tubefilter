@@ -11,7 +11,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [recoveryUrl, setRecoveryUrl] = useState({ search: "", hash: "" });
-  const shouldRedirectToReset = location.pathname !== "/reset-password" && isRecoveryRequest;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -27,6 +26,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     recoveryParams.has("refresh_token") ||
     recoveryParams.has("token_hash") ||
     recoveryParams.has("code");
+  const shouldRedirectToReset = location.pathname !== "/reset-password" && isRecoveryRequest;
 
   useEffect(() => {
     if (!loading && shouldRedirectToReset) {
