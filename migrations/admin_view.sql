@@ -1,7 +1,9 @@
 -- Run this in the Supabase SQL editor.
 
 -- 1. Roles
-create type if not exists public.app_role as enum ('admin', 'user');
+do $$ begin
+  create type public.app_role as enum ('admin', 'user');
+exception when duplicate_object then null; end $$;
 
 create table if not exists public.user_roles (
   id uuid primary key default gen_random_uuid(),
