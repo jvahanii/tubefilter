@@ -163,6 +163,7 @@ function FeedPage() {
   const fetchedRestoredRef = useRef(false);
   const [showFilters, setShowFilters] = useState(true);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [hiddenOpen, setHiddenOpen] = useState(false);
   const [loadingChannelId, setLoadingChannelId] = useState<string | null>(null);
   const [channelPaging, setChannelPaging] = useState<
     Record<string, { uploadsPlaylistId: string; nextPageToken: string | null }>
