@@ -27,14 +27,28 @@ function AuthScreen() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function handleModeChange(v: string) {
+    setMode(v as "signin" | "signup");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setError(null);
+    setInfo(null);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setInfo(null);
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
     setBusy(true);
     const fn = mode === "signin" ? signIn : signUp;
     const { error } = await fn(email, password);
