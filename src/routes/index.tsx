@@ -393,7 +393,7 @@ function FeedPage() {
       .filter(Boolean);
 
     let list = videos.filter((v) => {
-      if (!activeChannelIds.includes(v.channelId)) return false;
+      if (activeChannelIds.length > 0 && !activeChannelIds.includes(v.channelId)) return false;
       if (hiddenIds.includes(v.id)) return false;
       if (hideShorts && v.durationSec < 90) return false;
       if (lengthFilter === "short" && v.durationSec >= 240) return false;
