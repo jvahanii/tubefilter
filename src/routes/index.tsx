@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -18,6 +18,7 @@ import {
   Users,
   Loader2,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +108,27 @@ function FeedPage() {
   const [hydrated, setHydrated] = useState(false);
 
   const { user, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!cancelled) setIsAdmin(!!data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Load saved feed state from Supabase for the signed-in user
   useEffect(() => {
@@ -475,6 +497,13 @@ function FeedPage() {
               </Badge>
             )}
           </Button>
+          {isAdmin && (
+            <Button asChild variant="ghost" size="icon" title="Admin" aria-label="Admin">
+              <Link to="/admin">
+                <Shield className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
