@@ -452,15 +452,6 @@ function FeedPage() {
             <Compass className="h-4 w-4" />
             <span className="hidden sm:inline">Discover</span>
           </Button>
-          <Select value={sort} onValueChange={(v) => setSort(v as "recent" | "for-you")}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Most recent</SelectItem>
-              <SelectItem value="for-you">For you</SelectItem>
-            </SelectContent>
-          </Select>
           <Button
             variant={showFilters ? "default" : "outline"}
             size="icon"
