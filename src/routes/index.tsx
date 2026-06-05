@@ -924,10 +924,6 @@ function VideoCard({
           </div>
         </div>
 
-        <div className="rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Why this:</span> {video.reason}
-        </div>
-
         <div className="flex items-center justify-between">
           <Button
             variant="outline"
