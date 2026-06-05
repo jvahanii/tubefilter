@@ -276,6 +276,11 @@ function FeedPage() {
     if (channels.some((c) => c.id === ch.id)) {
       return;
     }
+    if (!isAdmin && channels.length >= FREE_CHANNEL_LIMIT) {
+      setUpgradeOpen(true);
+      setDiscoverOpen(false);
+      return;
+    }
 
     setLoadingChannelId(ch.id);
     try {
