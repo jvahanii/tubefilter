@@ -707,6 +707,80 @@ function FeedPage() {
         loadingChannelId={loadingChannelId}
         onAdd={addRealChannel}
       />
+
+      <Dialog open={hiddenOpen} onOpenChange={setHiddenOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Hidden videos</DialogTitle>
+            <DialogDescription>
+              {hiddenIds.length === 0
+                ? "You haven't hidden any videos yet."
+                : `${hiddenIds.length} video${hiddenIds.length === 1 ? "" : "s"} hidden. Unhide to bring them back to your feed.`}
+            </DialogDescription>
+          </DialogHeader>
+          {hiddenIds.length > 0 && (
+            <ScrollArea className="max-h-[60vh] pr-3">
+              <ul className="space-y-2">
+                {videos
+                  .filter((v) => hiddenIds.includes(v.id))
+                  .map((v) => {
+                    const ch = channels.find((c) => c.id === v.channelId);
+                    return (
+                      <li
+                        key={v.id}
+                        className="flex items-center gap-3 rounded-md border p-2"
+                      >
+                        <div
+                          className={`relative aspect-video h-16 shrink-0 overflow-hidden rounded-md ${v.thumbnailUrl ? "bg-muted" : `bg-gradient-to-br ${v.thumbnailGradient ?? "from-zinc-700 to-zinc-900"}`}`}
+                        >
+                          {v.thumbnailUrl && (
+                            <img
+                              src={v.thumbnailUrl}
+                              alt={v.title}
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm font-medium">
+                            {v.title}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {ch?.name ?? "Unknown channel"}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() =>
+                            setHiddenIds((prev) =>
+                              prev.filter((id) => id !== v.id),
+                            )
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                          Unhide
+                        </Button>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </ScrollArea>
+          )}
+          {hiddenIds.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setHiddenIds([])}
+              >
+                Unhide all
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
