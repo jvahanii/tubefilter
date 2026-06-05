@@ -421,7 +421,7 @@ function FeedPage() {
     excludeKeywords,
   ]);
 
-  const hiddenCount = videos.filter((v) => activeChannelIds.includes(v.channelId)).length - visibleVideos.length;
+  const hiddenCount = videos.filter((v) => activeChannelIds.length === 0 || activeChannelIds.includes(v.channelId)).length - visibleVideos.length;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
