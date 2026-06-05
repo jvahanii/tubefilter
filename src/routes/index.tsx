@@ -566,12 +566,10 @@ function FeedPage() {
                 key={v.id}
                 video={v}
                 channels={channels}
-                vote={votes[v.id]}
-                onVote={(dir) =>
-                  setVotes((prev) => ({
-                    ...prev,
-                    [v.id]: prev[v.id] === dir ? undefined : dir,
-                  }))
+                onHide={() =>
+                  setHiddenIds((prev) =>
+                    prev.includes(v.id) ? prev : [...prev, v.id],
+                  )
                 }
               />
             ))}
