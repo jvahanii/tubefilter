@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +17,31 @@ function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Start as null = "checking", then true/false once we know.
+  const [canReset, setCanReset] = useState<boolean | null>(null);
 
-  const hash = typeof window !== "undefined" ? window.location.hash : "";
-  const isRecovery = hash.includes("type=recovery") || hash.includes("access_token=");
+  useEffect(() => {
+    // Supabase consumes the recovery hash on load and fires PASSWORD_RECOVERY.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setCanReset(true);
+    });
+
+    // Fallback: if a session already exists when we land here (Supabase
+    // already processed the hash before our listener attached), allow reset.
+    supabase.auth.getSession().then(({ data }) => {
+      setCanReset((prev) => (prev === null ? !!data.session : prev));
+    });
+
+    // Final fallback after a tick in case neither fired.
+    const t = setTimeout(() => {
+      setCanReset((prev) => (prev === null ? false : prev));
+    }, 1500);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(t);
+    };
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -38,8 +60,18 @@ function ResetPasswordPage() {
     if (updateError) {
       setError(updateError.message);
     } else {
+      // Sign out so the user must log in with the new password.
+      await supabase.auth.signOut();
       setSuccess(true);
     }
+  }
+
+  if (canReset === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   if (success) {
@@ -59,7 +91,7 @@ function ResetPasswordPage() {
     );
   }
 
-  if (!isRecovery) {
+  if (!canReset) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-sm text-center">
