@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type FormEvent } from "react";
+import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import { useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,39 @@ import { Eye, EyeOff, Loader2, Youtube, ArrowLeft } from "lucide-react";
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [recoveryHash, setRecoveryHash] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setRecoveryHash(window.location.hash);
+    }
+  }, [location.pathname, location.search]);
+
+  const recoveryParams = new URLSearchParams(
+    `${location.search.startsWith("?") ? location.search.slice(1) : location.search}&${recoveryHash.startsWith("#") ? recoveryHash.slice(1) : recoveryHash}`,
+  );
+  const isRecoveryRequest =
+    recoveryParams.get("type") === "recovery" ||
+    recoveryParams.has("access_token") ||
+    recoveryParams.has("refresh_token") ||
+    recoveryParams.has("token_hash") ||
+    recoveryParams.has("code");
+
+  useEffect(() => {
+    if (!loading && !user && location.pathname !== "/reset-password" && isRecoveryRequest) {
+      window.location.replace(`/reset-password${location.search}${recoveryHash}`);
+    }
+  }, [isRecoveryRequest, loading, location.pathname, location.search, recoveryHash, user]);
 
   if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user && location.pathname !== "/reset-password" && isRecoveryRequest) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

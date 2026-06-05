@@ -21,6 +21,20 @@ function ResetPasswordPage() {
   const [canReset, setCanReset] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(
+      `${window.location.search.startsWith("?") ? window.location.search.slice(1) : window.location.search}&${window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash}`,
+    );
+    const hasRecoveryParams =
+      params.get("type") === "recovery" ||
+      params.has("access_token") ||
+      params.has("refresh_token") ||
+      params.has("token_hash") ||
+      params.has("code");
+
+    if (hasRecoveryParams) {
+      setCanReset(true);
+    }
+
     // Supabase consumes the recovery hash on load and fires PASSWORD_RECOVERY.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setCanReset(true);
@@ -29,7 +43,7 @@ function ResetPasswordPage() {
     // Fallback: if a session already exists when we land here (Supabase
     // already processed the hash before our listener attached), allow reset.
     supabase.auth.getSession().then(({ data }) => {
-      setCanReset((prev) => (prev === null ? !!data.session : prev));
+      setCanReset((prev) => (prev === null ? hasRecoveryParams || !!data.session : prev));
     });
 
     // Final fallback after a tick in case neither fired.
