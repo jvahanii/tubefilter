@@ -248,9 +248,9 @@ function FeedPage() {
 
   const addRealChannel = async (ch: YTChannel) => {
     if (channels.some((c) => c.id === ch.id)) {
-      setActiveChannelIds((prev) => (prev.includes(ch.id) ? prev : [...prev, ch.id]));
       return;
     }
+
     setLoadingChannelId(ch.id);
     try {
       const newChannel: MockChannel = {
