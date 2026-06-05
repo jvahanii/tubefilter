@@ -10,6 +10,13 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
 });
 
+function getRecoveryParams() {
+  const search = typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : "";
+  const hash = typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
+
+  return new URLSearchParams([search, hash].filter(Boolean).join("&"));
+}
+
 function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,39 +28,82 @@ function ResetPasswordPage() {
   const [canReset, setCanReset] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(
-      `${window.location.search.startsWith("?") ? window.location.search.slice(1) : window.location.search}&${window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash}`,
-    );
-    const hasRecoveryParams =
-      params.get("type") === "recovery" ||
-      params.has("access_token") ||
-      params.has("refresh_token") ||
-      params.has("token_hash") ||
-      params.has("code");
+    let active = true;
 
-    if (hasRecoveryParams) {
-      setCanReset(true);
-    }
+    const markResolved = (allowed: boolean, nextError: string | null = null) => {
+      if (!active) return;
+      setError(nextError);
+      setCanReset(allowed);
+    };
 
-    // Supabase consumes the recovery hash on load and fires PASSWORD_RECOVERY.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setCanReset(true);
+      if (!active) return;
+      if (event === "PASSWORD_RECOVERY") {
+        setError(null);
+        setCanReset(true);
+      }
     });
 
-    // Fallback: if a session already exists when we land here (Supabase
-    // already processed the hash before our listener attached), allow reset.
-    supabase.auth.getSession().then(({ data }) => {
-      setCanReset((prev) => (prev === null ? hasRecoveryParams || !!data.session : prev));
-    });
+    void (async () => {
+      const params = getRecoveryParams();
+      const hasRecoveryParams =
+        params.get("type") === "recovery" ||
+        params.has("access_token") ||
+        params.has("refresh_token") ||
+        params.has("token_hash") ||
+        params.has("code");
 
-    // Final fallback after a tick in case neither fired.
-    const t = setTimeout(() => {
-      setCanReset((prev) => (prev === null ? false : prev));
-    }, 1500);
+      if (!hasRecoveryParams) {
+        markResolved(false);
+        return;
+      }
+
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (currentSession.session) {
+        markResolved(true);
+        return;
+      }
+
+      const code = params.get("code");
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+
+      let recoveryError: string | null = null;
+
+      if (accessToken && refreshToken) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        recoveryError = setSessionError?.message ?? null;
+      } else if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        recoveryError = exchangeError?.message ?? null;
+      } else if (type === "recovery" && tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+        });
+        recoveryError = verifyError?.message ?? null;
+      }
+
+      if (recoveryError) {
+        markResolved(false, "This password reset link is invalid or has expired.");
+        return;
+      }
+
+      const { data: verifiedSession } = await supabase.auth.getSession();
+      markResolved(
+        !!verifiedSession.session,
+        verifiedSession.session ? null : "This password reset link is invalid or has expired.",
+      );
+    })();
 
     return () => {
+      active = false;
       sub.subscription.unsubscribe();
-      clearTimeout(t);
     };
   }, []);
 
