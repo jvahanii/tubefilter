@@ -192,6 +192,10 @@ function FeedPage() {
     Record<string, { uploadsPlaylistId: string; nextPageToken: string | null }>
   >({});
   const [loadingMore, setLoadingMore] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const FREE_CHANNEL_LIMIT = 1;
+  const atChannelLimit = !isAdmin && channels.length >= FREE_CHANNEL_LIMIT;
 
   const fetchUploads = useServerFn(getChannelUploads);
 
