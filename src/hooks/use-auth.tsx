@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+const PASSWORD_RESET_REDIRECT_URL = "https://tubefilter.lovable.app/reset-password";
+
 type AuthCtx = {
   user: User | null;
   session: Session | null;
@@ -48,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     async resetPassword(email) {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: PASSWORD_RESET_REDIRECT_URL,
       });
       return { error: error?.message ?? null };
     },
