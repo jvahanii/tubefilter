@@ -5,8 +5,6 @@ import {
   Search,
   Plus,
   Filter,
-  ThumbsUp,
-  ThumbsDown,
   
   Eye,
   EyeOff,

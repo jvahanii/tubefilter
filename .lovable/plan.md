@@ -1,37 +1,20 @@
-## Plan: Create `user_preferences` table
+## Remove "More like this" button and all thumbs-up logic
 
-The app reads/writes `user_preferences` keyed by `user_id` with a JSON `data` column and `updated_at`. I'll create a migration that adds the table with proper RLS so each user can only access their own row.
+Edit `src/routes/index.tsx`:
 
-### Migration
+1. **VideoCard** — remove the "More like this" `<Button>` (lines 819-827). Drop `vote` and `onVote` props, remove `ThumbsUp` icon usage. Hide button calls a simpler `onHide` callback instead.
+2. **Imports** — remove `ThumbsUp` and `ThumbsDown` from lucide-react imports.
+3. **Feed page** — replace the `votes` state with a simpler `hiddenIds: string[]` (or `Set<string>`). Update:
+   - `useState` declaration
+   - Supabase hydration (`parsed.votes` → `parsed.hiddenIds`)
+   - Supabase persistence payload (`votes` → `hiddenIds`)
+   - `visibleVideos` filter: `if (hiddenIds.includes(v.id)) return false;`
+   - Remove the `votes[id] === "up"` boost branch in the `for-you` sort
+4. **Sort dropdown** — remove the "For you" `<SelectItem>` and narrow the `sort` state type to just `"recent"` (or drop the Select entirely since only one option remains). I'll drop the Select to keep the header clean.
+5. **Filter rail** — remove the "Learning from you / Thumbs up boosts…" info block (lines 706-712) since there's no learning anymore.
+6. **VideoCard call site** — pass `onHide={() => setHiddenIds(prev => [...prev, v.id])}` and `hidden={hiddenIds.includes(v.id)}` (so the Hide button can still toggle visually if needed; actually since hidden videos disappear from the list, the toggle state isn't visible — Hide just removes).
 
-```sql
-CREATE TABLE public.user_preferences (
-  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  data jsonb NOT NULL DEFAULT '{}'::jsonb,
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+### Migration note
+Existing rows in `user_preferences.data.votes` will simply be ignored. Down-votes won't auto-migrate to `hiddenIds`. If you want me to migrate existing `votes[id] === "down"` entries into `hiddenIds` on hydration, say so and I'll add a one-time conversion.
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_preferences TO authenticated;
-GRANT ALL ON public.user_preferences TO service_role;
-
-ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own preferences"
-  ON public.user_preferences FOR SELECT
-  TO authenticated USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own preferences"
-  ON public.user_preferences FOR INSERT
-  TO authenticated WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own preferences"
-  ON public.user_preferences FOR UPDATE
-  TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own preferences"
-  ON public.user_preferences FOR DELETE
-  TO authenticated USING (auth.uid() = user_id);
-```
-
-No app code changes — `src/routes/index.tsx` already reads/upserts this table with the right shape.
+No DB schema changes needed — `data` is JSON.
