@@ -279,6 +279,14 @@ function FeedPage() {
     if (!isAdmin && channels.length >= FREE_CHANNEL_LIMIT) {
       setUpgradeOpen(true);
       setDiscoverOpen(false);
+      if (user) {
+        supabase
+          .from("upgrade_attempts")
+          .insert({ user_id: user.id, channel_name: ch.name })
+          .then(({ error }) => {
+            if (error) console.warn("Failed to log upgrade attempt", error.message);
+          });
+      }
       return;
     }
 
