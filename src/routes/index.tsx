@@ -683,9 +683,9 @@ function FeedPage() {
               <div className="rounded-md bg-accent/40 p-3 text-xs text-muted-foreground">
                 <div className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Learning from you
+                  Hidden videos
                 </div>
-                Thumbs up boosts similar videos. Hide removes a video from your feed.
+                Hide removes a video from your feed.
               </div>
             </div>
           </aside>
