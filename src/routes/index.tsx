@@ -205,7 +205,6 @@ function FeedPage() {
               durationSec: v.durationSec,
               uploadedAt: v.uploadedAt,
               views: v.views,
-              score: 0.7,
               reason: `Recent upload from ${r.name}`,
             });
           }
@@ -273,7 +272,6 @@ function FeedPage() {
         durationSec: v.durationSec,
         uploadedAt: v.uploadedAt,
         views: v.views,
-        score: 0.7,
         reason: `Recent upload from ${v.channelName}`,
       }));
       setVideos((prev) => {
@@ -340,7 +338,6 @@ function FeedPage() {
               durationSec: v.durationSec,
               uploadedAt: v.uploadedAt,
               views: v.views,
-              score: 0.6,
               reason: `Upload from ${channelNameById.get(v.channelId) ?? v.channelName}`,
             });
           }
@@ -870,10 +867,6 @@ function VideoCard({
           )}
           <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
             {formatDuration(video.durationSec)}
-          </span>
-          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white backdrop-blur">
-            <Sparkles className="h-3 w-3" />
-            {Math.round(video.score * 100)}% match
           </span>
         </div>
       </button>
