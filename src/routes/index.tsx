@@ -731,13 +731,11 @@ function ChannelAvatar({
 function VideoCard({
   video,
   channels,
-  vote,
-  onVote,
+  onHide,
 }: {
   video: MockVideo;
   channels: MockChannel[];
-  vote: "up" | "down" | undefined;
-  onVote: (dir: "up" | "down") => void;
+  onHide: () => void;
 }) {
   const channel = channels.find((c) => c.id === video.channelId);
   const [playing, setPlaying] = useState(false);
