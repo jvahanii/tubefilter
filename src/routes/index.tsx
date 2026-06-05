@@ -229,7 +229,7 @@ function FeedPage() {
   const loadSampleData = () => {
     setChannels(mockChannels);
     setVideos(mockVideos);
-    setActiveChannelIds(mockChannels.map((c) => c.id));
+    setActiveChannelIds([]);
   };
 
   const toggleChannel = (id: string) =>
@@ -237,11 +237,14 @@ function FeedPage() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
+  const clearChannelSelection = () => setActiveChannelIds([]);
+
   const removeChannel = (id: string) => {
     setChannels((prev) => prev.filter((c) => c.id !== id));
     setActiveChannelIds((prev) => prev.filter((x) => x !== id));
     setVideos((prev) => prev.filter((v) => v.channelId !== id));
   };
+
 
   const addRealChannel = async (ch: YTChannel) => {
     if (channels.some((c) => c.id === ch.id)) {
