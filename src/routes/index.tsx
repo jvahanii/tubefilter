@@ -296,10 +296,13 @@ function FeedPage() {
 
   const loadMore = useCallback(async () => {
     if (loadingMore) return;
-    const targets = activeChannelIds
+    const effectiveIds =
+      activeChannelIds.length > 0 ? activeChannelIds : channels.map((c) => c.id);
+    const targets = effectiveIds
       .map((id) => ({ id, paging: channelPaging[id] }))
       .filter((t) => t.paging?.nextPageToken);
     if (targets.length === 0) return;
+
     setLoadingMore(true);
     try {
       const results = await Promise.all(
