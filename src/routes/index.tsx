@@ -505,10 +505,31 @@ function FeedPage() {
               Discover & add channels
             </Button>
 
-            <ScrollArea className="h-[calc(100vh-220px)] pr-2">
+            {activeChannelIds.length > 0 ? (
+              <div className="flex items-center justify-between rounded-md border bg-accent/30 px-2.5 py-1.5 text-xs">
+                <span className="text-muted-foreground">
+                  Filtering by {activeChannelIds.length} channel{activeChannelIds.length === 1 ? "" : "s"}
+                </span>
+                <button
+                  onClick={clearChannelSelection}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  Show all
+                </button>
+              </div>
+            ) : (
+              <p className="px-1 text-xs text-muted-foreground">
+                Click channels to show only their videos.
+              </p>
+            )}
+
+            <ScrollArea className="h-[calc(100vh-260px)] pr-2">
               <ul className="space-y-1">
                 {channels.map((c) => {
-                  const active = activeChannelIds.includes(c.id);
+                  const selecting = activeChannelIds.length > 0;
+                  const selected = activeChannelIds.includes(c.id);
+                  const active = !selecting || selected;
+
                   const lastVid = videos
                     .filter((v) => v.channelId === c.id)
                     .sort(
