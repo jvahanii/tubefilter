@@ -103,8 +103,8 @@ function FeedPage() {
   const [channels, setChannels] = useState<MockChannel[]>([]);
   const [videos, setVideos] = useState<MockVideo[]>([]);
   const [activeChannelIds, setActiveChannelIds] = useState<string[]>([]);
-  const [sort, setSort] = useState<"recent" | "for-you">("recent");
-  const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
+  const [sort] = useState<"recent">("recent");
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   const { user, signOut } = useAuth();
