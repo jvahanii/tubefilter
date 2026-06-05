@@ -480,6 +480,15 @@ function FeedPage() {
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            aria-label="Log out"
+            title="Log out"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 
