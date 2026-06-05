@@ -1027,6 +1027,17 @@ function DiscoverDialog({
       setLoading(true);
       setError(null);
       setSubmitted(q);
+      // Log search activity (fire-and-forget)
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) {
+          supabase
+            .from("search_events")
+            .insert({ user_id: data.user.id, query: q, kind: "combined" })
+            .then(({ error }) => {
+              if (error) console.warn("Search log failed", error.message);
+            });
+        }
+      });
       try {
         const [ch, vd] = await Promise.all([
           searchChannels({ data: { query: q } }),
