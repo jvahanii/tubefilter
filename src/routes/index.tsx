@@ -108,7 +108,7 @@ function FeedPage() {
   const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
   const [hydrated, setHydrated] = useState(false);
 
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Load saved feed state from Supabase for the signed-in user
   useEffect(() => {
