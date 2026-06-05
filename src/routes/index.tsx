@@ -129,12 +129,12 @@ function FeedPage() {
         const parsed = data.data as {
           channels?: MockChannel[];
           activeChannelIds?: string[];
-          votes?: Record<string, "up" | "down" | undefined>;
+          hiddenIds?: string[];
         };
         if (parsed.channels?.length) setChannels(parsed.channels);
         if (parsed.activeChannelIds?.length)
           setActiveChannelIds(parsed.activeChannelIds);
-        if (parsed.votes) setVotes(parsed.votes);
+        if (parsed.hiddenIds?.length) setHiddenIds(parsed.hiddenIds);
       }
       setHydrated(true);
     })();
