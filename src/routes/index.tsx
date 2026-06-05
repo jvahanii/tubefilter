@@ -9,6 +9,7 @@ import {
   ThumbsDown,
   
   Eye,
+  EyeOff,
   Sparkles,
   X,
   Trash2,
