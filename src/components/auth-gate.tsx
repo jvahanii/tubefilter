@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Youtube, LogOut } from "lucide-react";
+import { Loader2, Youtube } from "lucide-react";
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -19,17 +19,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (!user) return <AuthScreen />;
 
-  return (
-    <div className="relative">
-      <div className="fixed right-4 top-16 z-40 flex items-center gap-2 rounded-md border border-border bg-card/80 px-3 py-1.5 text-xs backdrop-blur">
-        <span className="text-muted-foreground hidden sm:inline">{user.email}</span>
-        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={signOut}>
-          <LogOut className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }
 
 function AuthScreen() {

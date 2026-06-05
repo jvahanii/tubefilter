@@ -18,6 +18,7 @@ import {
   Check,
   Users,
   Loader2,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +108,7 @@ function FeedPage() {
   const [votes, setVotes] = useState<Record<string, "up" | "down" | undefined>>({});
   const [hydrated, setHydrated] = useState(false);
 
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Load saved feed state from Supabase for the signed-in user
   useEffect(() => {
@@ -478,6 +479,15 @@ function FeedPage() {
             aria-label="Toggle filters"
           >
             <SlidersHorizontal className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            aria-label="Log out"
+            title="Log out"
+          >
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </header>
