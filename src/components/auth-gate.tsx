@@ -11,6 +11,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [recoveryUrl, setRecoveryUrl] = useState({ search: "", hash: "" });
+  const shouldRedirectToReset = location.pathname !== "/reset-password" && isRecoveryRequest;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -28,10 +29,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     recoveryParams.has("code");
 
   useEffect(() => {
-    if (!loading && !user && location.pathname !== "/reset-password" && isRecoveryRequest) {
+    if (!loading && shouldRedirectToReset) {
       window.location.replace(`/reset-password${recoveryUrl.search}${recoveryUrl.hash}`);
     }
-  }, [isRecoveryRequest, loading, location.pathname, recoveryUrl.search, recoveryUrl.hash, user]);
+  }, [loading, recoveryUrl.search, recoveryUrl.hash, shouldRedirectToReset]);
 
   if (loading) {
     return (
@@ -41,7 +42,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user && location.pathname !== "/reset-password" && isRecoveryRequest) {
+  if (shouldRedirectToReset) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
