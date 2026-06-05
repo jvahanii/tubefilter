@@ -387,7 +387,7 @@ function FeedPage() {
 
     let list = videos.filter((v) => {
       if (!activeChannelIds.includes(v.channelId)) return false;
-      if (votes[v.id] === "down") return false;
+      if (hiddenIds.includes(v.id)) return false;
       if (hideShorts && v.durationSec < 90) return false;
       if (lengthFilter === "short" && v.durationSec >= 240) return false;
       if (lengthFilter === "medium" && (v.durationSec < 240 || v.durationSec > 1200)) return false;
@@ -399,29 +399,19 @@ function FeedPage() {
       return true;
     });
 
-    if (sort === "recent") {
-      list = [...list].sort(
-        (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
-      );
-    } else {
-      list = [...list].sort((a, b) => {
-        const ba = (votes[b.id] === "up" ? 0.2 : 0) + b.score;
-        const aa = (votes[a.id] === "up" ? 0.2 : 0) + a.score;
-        return ba - aa;
-      });
-    }
+    list = [...list].sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+    );
     return list;
   }, [
     videos,
     activeChannelIds,
-    votes,
-    
+    hiddenIds,
     hideShorts,
     lengthFilter,
     search,
     includeKeywords,
     excludeKeywords,
-    sort,
   ]);
 
   const hiddenCount = videos.filter((v) => activeChannelIds.includes(v.channelId)).length - visibleVideos.length;
